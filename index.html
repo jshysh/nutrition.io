@@ -585,6 +585,9 @@
   .pace-race-total-value{
     margin-top:6px; font-family:var(--font-mono); font-size:1.45rem; font-weight:800; color:var(--accent);
   }
+  .pace-race-total-finish{
+    margin-top:8px; font-family:var(--font-mono); font-size:1.05rem; font-weight:700; color:var(--text);
+  }
   .pace-race-total-sub{ margin-top:4px; font-size:.9rem; color:var(--text-dim); }
   .race-format-toggle{ display:flex; background:var(--panel-2); border:1px solid var(--border); border-radius:var(--radius-s); overflow:hidden; margin-top:12px; width:fit-content; }
   .race-format-btn{
@@ -969,7 +972,8 @@
           <div class="pace-race-total" id="paceRaceTotalCard" style="margin-top:16px;">
             <div class="pace-race-total-label">Approximate race time</div>
             <div class="pace-race-total-value" id="paceRaceTotalValue">—</div>
-            <div class="pace-race-total-sub" id="paceRaceTotalSub">Swim + bike + run from your longest pace/speed estimates (transitions not included).</div>
+            <div class="pace-race-total-finish" id="paceRaceTotalFinish"></div>
+            <div class="pace-race-total-sub" id="paceRaceTotalSub">Swim + bike + run from your pace/speed ranges (transitions not included in race time).</div>
           </div>
 
           <p class="card-hint" style="margin-top:10px;" id="morningWindowHint">Morning fueling rows are created automatically from wake-up to race start.</p>
@@ -2888,25 +2892,44 @@ function estimateTotalRaceHours() {
 
 function updateRaceTotalEstimateUI() {
   var valueEl = document.getElementById('paceRaceTotalValue');
+  var finishEl = document.getElementById('paceRaceTotalFinish');
   var subEl = document.getElementById('paceRaceTotalSub');
   if (!valueEl || !subEl) return;
   var total = estimateTotalRaceHours();
   if (!total) {
     valueEl.textContent = '—';
-    subEl.textContent = 'Enter swim, bike, and run pace/speed ranges to estimate total race time. Plan uses the longest estimate for each discipline (transitions not included).';
+    if (finishEl) finishEl.textContent = '';
+    subEl.textContent = 'Enter swim, bike, and run pace/speed ranges to estimate race time and finish. Plan duration uses the longest estimate per discipline.';
     return;
   }
-  valueEl.textContent = fmtHM(total.slowHours);
+
+  var same = Math.abs(total.slowHours - total.fastHours) < 1 / 120;
+  valueEl.textContent = same
+    ? fmtHM(total.slowHours)
+    : fmtHM(total.fastHours) + ' – ' + fmtHM(total.slowHours);
+
+  var transitions = timeToHours(state.raceTimes.t1) + timeToHours(state.raceTimes.t2);
+  var finishFast = clockAtOffsetHours(total.fastHours + transitions);
+  var finishSlow = clockAtOffsetHours(total.slowHours + transitions);
+  if (finishEl) {
+    finishEl.textContent = same
+      ? 'Finish ~' + finishSlow
+      : 'Finish ~' + finishFast + ' – ' + finishSlow;
+  }
+
   var breakdown = total.parts.map(function (p) {
-    return p.disc.charAt(0).toUpperCase() + p.disc.slice(1) + ' ' + fmtHM(p.est.slowHours);
+    var label = p.disc.charAt(0).toUpperCase() + p.disc.slice(1);
+    if (Math.abs(p.est.slowHours - p.est.fastHours) < 1 / 120) {
+      return label + ' ' + fmtHM(p.est.slowHours);
+    }
+    return label + ' ' + fmtHM(p.est.fastHours) + '–' + fmtHM(p.est.slowHours);
   }).join(' · ');
-  var note = breakdown + '. Longest estimates · transitions not included.';
+
+  var note = breakdown + '.';
   if (!total.complete) {
-    note = 'Partial: missing ' + total.missing.join(', ') + '. ' + breakdown + '. Transitions not included.';
+    note = 'Partial: missing ' + total.missing.join(', ') + '. ' + breakdown + '.';
   }
-  if (total.complete && Math.abs(total.slowHours - total.fastHours) >= 1 / 120) {
-    note += ' Range ' + fmtHM(total.fastHours) + '–' + fmtHM(total.slowHours) + '.';
-  }
+  note += ' Plan uses longest estimates. Finish includes T1+T2; race time is swim+bike+run only.';
   subEl.textContent = note;
 }
 
