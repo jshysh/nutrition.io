@@ -836,15 +836,15 @@
               </div>
             </div>
             <div class="pace-field">
-              <label id="pace-swim-speed-label">Speed range</label>
+              <label id="pace-swim-speed-label">Pace range (min:sec / 100m)</label>
               <div class="pace-hr-row">
-                <input type="number" inputmode="decimal" id="pace-swim-speedMin" class="pace-input mono" data-disc="swim" data-field="speedMin" min="0" step="0.1" placeholder="Slow" aria-label="Swim slow speed">
+                <input type="text" inputmode="numeric" id="pace-swim-speedMin" class="pace-input mono" data-disc="swim" data-field="speedMin" placeholder="2:05" aria-label="Swim slow pace min:sec per 100m" autocomplete="off" spellcheck="false">
                 <span>–</span>
-                <input type="number" inputmode="decimal" id="pace-swim-speedMax" class="pace-input mono" data-disc="swim" data-field="speedMax" min="0" step="0.1" placeholder="Fast" aria-label="Swim fast speed">
+                <input type="text" inputmode="numeric" id="pace-swim-speedMax" class="pace-input mono" data-disc="swim" data-field="speedMax" placeholder="1:50" aria-label="Swim fast pace min:sec per 100m" autocomplete="off" spellcheck="false">
               </div>
               <span class="pace-hint" id="pace-swim-speed-hint"></span>
             </div>
-            <div class="pace-estimate" id="pace-swim-estimate">Enter a speed range to estimate swim time.</div>
+            <div class="pace-estimate" id="pace-swim-estimate">Enter a pace range (e.g. 1:55) to estimate swim time.</div>
             <div class="pace-field">
               <label for="pace-swim-notes">Notes</label>
               <textarea id="pace-swim-notes" class="pace-input" data-disc="swim" data-field="notes" maxlength="240" placeholder="Sighting, draft, start strategy…"></textarea>
@@ -2625,6 +2625,54 @@ function runPaceMinutesToKmh(paceMin) {
   return Math.round(kmh * 100) / 100;
 }
 
+/** Minutes per 100m (or /100yd) from stored km/h. */
+function kmhToSwimPaceMinutes(speedKmh) {
+  var n = Number(speedKmh);
+  if (!isFinite(n) || n <= 0) return null;
+  if (state.units === 'imperial') return (0.09144 / n) * 60;
+  return (0.1 / n) * 60;
+}
+
+/** Stored km/h from swim pace minutes per 100m (or /100yd). */
+function swimPaceMinutesToKmh(paceMin) {
+  var n = Number(paceMin);
+  if (!isFinite(n) || n <= 0) return '';
+  var kmh = state.units === 'imperial' ? (0.09144 * 60) / n : 6 / n;
+  return Math.round(kmh * 100) / 100;
+}
+
+function usesPaceInput(disc) {
+  return disc === 'swim' || disc === 'run';
+}
+
+function kmhToDiscPaceMinutes(disc, speedKmh) {
+  if (disc === 'swim') return kmhToSwimPaceMinutes(speedKmh);
+  if (disc === 'run') return kmhToRunPaceMinutes(speedKmh);
+  return null;
+}
+
+function discPaceMinutesToKmh(disc, paceMin) {
+  if (disc === 'swim') return swimPaceMinutesToKmh(paceMin);
+  if (disc === 'run') return runPaceMinutesToKmh(paceMin);
+  return '';
+}
+
+function discPaceUnitLabel(disc) {
+  if (disc === 'swim') return state.units === 'imperial' ? '/100yd' : '/100m';
+  if (disc === 'run') return state.units === 'imperial' ? '/mi' : '/km';
+  return '';
+}
+
+function discPaceRangeLabel(disc) {
+  if (disc === 'swim') {
+    return state.units === 'imperial' ? 'Pace range (min:sec / 100yd)' : 'Pace range (min:sec / 100m)';
+  }
+  if (disc === 'run') {
+    return state.units === 'imperial' ? 'Pace range (min:sec / mi)' : 'Pace range (min:sec / km)';
+  }
+  return 'Speed range (' + speedUnitLabel() + ')';
+}
+
 function kmhToKmPerMin(speedKmh) {
   var n = Number(speedKmh);
   if (!isFinite(n) || n <= 0) return null;
@@ -2640,7 +2688,6 @@ function fmtKmPerMin(speedKmh) {
 function swimPaceHint(speedKmh) {
   if (!speedKmh || speedKmh <= 0) return '';
   if (state.units === 'imperial') {
-    /* 100 yd = 0.09144 km */
     return fmtPaceSeconds((0.09144 / speedKmh) * 3600) + ' /100yd';
   }
   return fmtPaceSeconds((0.1 / speedKmh) * 3600) + ' /100m';
@@ -2661,25 +2708,32 @@ function fmtHrRange(p) {
   return '≤' + p.hrMax + ' bpm';
 }
 
-function fmtSpeedRange(p, disc) {
+function fmtPaceInputRange(p, disc) {
+  var slowPace = kmhToDiscPaceMinutes(disc, p.speedMin);
+  var fastPace = kmhToDiscPaceMinutes(disc, p.speedMax);
+  var unit = discPaceUnitLabel(disc);
+  if (slowPace == null && fastPace == null) return '—';
+  var paceText = '';
+  if (slowPace != null && fastPace != null) {
+    paceText = formatPaceMmSsFromMinutes(Math.max(slowPace, fastPace)) + '–' +
+      formatPaceMmSsFromMinutes(Math.min(slowPace, fastPace)) + ' ' + unit;
+  } else {
+    var only = slowPace != null ? slowPace : fastPace;
+    paceText = formatPaceMmSsFromMinutes(only) + ' ' + unit;
+  }
+  var pair = orderedSpeedPair(p);
+  if (!pair) return paceText;
   if (disc === 'run') {
-    var slowPace = kmhToRunPaceMinutes(p.speedMin);
-    var fastPace = kmhToRunPaceMinutes(p.speedMax);
-    var unit = state.units === 'imperial' ? '/mi' : '/km';
-    if (slowPace == null && fastPace == null) return '—';
-    var paceText = '';
-    if (slowPace != null && fastPace != null) {
-      paceText = formatPaceMmSsFromMinutes(Math.max(slowPace, fastPace)) + '–' +
-        formatPaceMmSsFromMinutes(Math.min(slowPace, fastPace)) + ' ' + unit;
-    } else {
-      var only = slowPace != null ? slowPace : fastPace;
-      paceText = formatPaceMmSsFromMinutes(only) + ' ' + unit;
-    }
-    var pair = orderedSpeedPair(p);
-    if (!pair) return paceText;
     if (pair.slow === pair.fast) return paceText + ' · ' + fmtKmPerMin(pair.fast);
     return paceText + ' · ' + fmtKmPerMin(pair.slow) + '–' + fmtKmPerMin(pair.fast);
   }
+  /* Swim: show equivalent km/h */
+  if (pair.slow === pair.fast) return paceText + ' · ' + round1(pair.fast) + ' km/h';
+  return paceText + ' · ' + round1(pair.slow) + '–' + round1(pair.fast) + ' km/h';
+}
+
+function fmtSpeedRange(p, disc) {
+  if (usesPaceInput(disc)) return fmtPaceInputRange(p, disc);
   var unitSp = speedUnitLabel();
   var a = kmhToDisplaySpeed(p.speedMin);
   var b = kmhToDisplaySpeed(p.speedMax);
@@ -2746,13 +2800,7 @@ function updatePaceEstimateUI(disc) {
   var el = document.getElementById('pace-' + disc + '-estimate');
   var hintEl = document.getElementById('pace-' + disc + '-speed-hint');
   var labelEl = document.getElementById('pace-' + disc + '-speed-label');
-  if (labelEl) {
-    if (disc === 'run') {
-      labelEl.textContent = state.units === 'imperial' ? 'Pace range (min:sec / mi)' : 'Pace range (min:sec / km)';
-    } else {
-      labelEl.textContent = 'Speed range (' + speedUnitLabel() + ')';
-    }
-  }
+  if (labelEl) labelEl.textContent = discPaceRangeLabel(disc);
   var p = state.paces[disc];
   var pair = orderedSpeedPair(p);
   if (hintEl) {
@@ -2760,10 +2808,14 @@ function updatePaceEstimateUI(disc) {
       hintEl.textContent = disc === 'bike'
         ? 'Typical IM bike: ~28–36 km/h (17–22 mph)'
         : (disc === 'swim'
-          ? 'Typical IM swim: ~2.6–3.4 km/h (~1:45–2:20 /100m)'
+          ? 'Type pace like 1:55. Typical IM swim: ~1:45–2:20 /100m'
           : 'Type pace like 6:25. Typical IM run: ~5:00–6:40 /km');
     } else if (disc === 'swim') {
-      hintEl.textContent = '≈ ' + swimPaceHint(pair.slow) + (pair.slow !== pair.fast ? ' – ' + swimPaceHint(pair.fast) : '');
+      if (pair.slow === pair.fast) {
+        hintEl.textContent = '≈ ' + round1(pair.fast) + ' km/h';
+      } else {
+        hintEl.textContent = '≈ ' + round1(pair.slow) + '–' + round1(pair.fast) + ' km/h';
+      }
     } else if (disc === 'run') {
       if (pair.slow === pair.fast) {
         hintEl.textContent = '≈ ' + fmtKmPerMin(pair.fast) + ' · ' + round1(pair.fast) + ' km/h';
@@ -2778,8 +2830,8 @@ function updatePaceEstimateUI(disc) {
   if (!el) return;
   var est = estimateDurationHours(disc);
   if (!est) {
-    el.innerHTML = disc === 'run'
-      ? 'Enter a pace range (e.g. 6:25) to estimate run time for ' + formatDistanceLabel(disc) + '.'
+    el.innerHTML = usesPaceInput(disc)
+      ? 'Enter a pace range (e.g. ' + (disc === 'swim' ? '1:55' : '6:25') + ') to estimate ' + disc + ' time for ' + formatDistanceLabel(disc) + '.'
       : 'Enter a speed range to estimate ' + disc + ' time for ' + formatDistanceLabel(disc) + '.';
     return;
   }
@@ -2808,23 +2860,27 @@ function syncPacesInputs() {
     if (zoneEl) zoneEl.value = p.zone;
     if (hrMinEl) hrMinEl.value = p.hrMin === '' ? '' : p.hrMin;
     if (hrMaxEl) hrMaxEl.value = p.hrMax === '' ? '' : p.hrMax;
-    if (disc === 'run') {
+    if (usesPaceInput(disc)) {
       /* Normalize so left = slower pace, right = faster pace */
-      var pairRun = orderedSpeedPair(p);
-      if (pairRun) {
-        state.paces[disc].speedMin = pairRun.slow;
-        state.paces[disc].speedMax = pairRun.fast;
+      var pairPace = orderedSpeedPair(p);
+      if (pairPace) {
+        state.paces[disc].speedMin = pairPace.slow;
+        state.paces[disc].speedMax = pairPace.fast;
         p = state.paces[disc];
       }
       if (speedMinEl) {
-        var slowPace = kmhToRunPaceMinutes(p.speedMin);
+        var slowPace = kmhToDiscPaceMinutes(disc, p.speedMin);
         speedMinEl.value = slowPace == null ? '' : formatPaceMmSsFromMinutes(slowPace);
-        speedMinEl.placeholder = state.units === 'imperial' ? '10:45' : '6:45';
+        speedMinEl.placeholder = disc === 'swim'
+          ? (state.units === 'imperial' ? '2:00' : '2:05')
+          : (state.units === 'imperial' ? '10:45' : '6:45');
       }
       if (speedMaxEl) {
-        var fastPace = kmhToRunPaceMinutes(p.speedMax);
+        var fastPace = kmhToDiscPaceMinutes(disc, p.speedMax);
         speedMaxEl.value = fastPace == null ? '' : formatPaceMmSsFromMinutes(fastPace);
-        speedMaxEl.placeholder = state.units === 'imperial' ? '9:30' : '6:00';
+        speedMaxEl.placeholder = disc === 'swim'
+          ? (state.units === 'imperial' ? '1:40' : '1:50')
+          : (state.units === 'imperial' ? '9:30' : '6:00');
       }
     } else {
       if (speedMinEl) speedMinEl.value = p.speedMin === '' ? '' : kmhToDisplaySpeed(p.speedMin);
@@ -2901,14 +2957,14 @@ document.getElementById('tab-paces').addEventListener('input', function (e) {
     if (rawHr === '' || rawHr == null) state.paces[disc][field] = '';
     else state.paces[disc][field] = Math.max(0, Math.min(250, Math.floor(Number(rawHr) || 0)));
   } else if (field === 'speedMin' || field === 'speedMax') {
-    if (disc === 'run') {
+    if (usesPaceInput(disc)) {
       var rawPace = String(e.target.value || '').trim();
       if (!rawPace) {
         state.paces[disc][field] = '';
       } else {
         var paceMin = parsePaceMmSs(rawPace);
-        /* Keep previous stored value while typing incomplete values like "6:" */
-        if (paceMin != null) state.paces[disc][field] = runPaceMinutesToKmh(paceMin);
+        /* Keep previous stored value while typing incomplete values like "1:" */
+        if (paceMin != null) state.paces[disc][field] = discPaceMinutesToKmh(disc, paceMin);
       }
     } else {
       state.paces[disc][field] = displaySpeedToKmh(e.target.value);
