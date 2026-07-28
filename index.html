@@ -561,6 +561,8 @@
   .pace-time-row{ align-items:flex-start; }
   .pace-inline{ flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
   .pace-inline-label{ font-size:.88rem; font-weight:700; color:var(--text-dim); }
+  .pace-inline-label + .pace-hr-row{ margin-top:0; }
+  .pace-inline .pace-inline-label:not(:first-child){ margin-top:8px; }
   .pace-input{
     width:100%; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
     border-radius:var(--radius-s); padding:8px 10px; font-size:.95rem; font-weight:500;
@@ -913,11 +915,17 @@
             <div class="time-row pace-time-row">
               <label class="seg-label seg-swim"><span class="seg-dot"></span>Swim</label>
               <div class="pace-inline">
+                <label class="pace-inline-label">Heart rate (bpm)</label>
+                <div class="pace-hr-row">
+                  <input type="number" inputmode="numeric" id="pace-swim-hrMin" class="pace-input mono" data-disc="swim" data-field="hrMin" min="0" max="250" step="1" placeholder="Min" aria-label="Swim HR minimum">
+                  <span>–</span>
+                  <input type="number" inputmode="numeric" id="pace-swim-hrMax" class="pace-input mono" data-disc="swim" data-field="hrMax" min="0" max="250" step="1" placeholder="Max" aria-label="Swim HR maximum">
+                </div>
                 <label class="pace-inline-label" id="pace-swim-speed-label">Pace (min:sec / 100m)</label>
                 <div class="pace-hr-row">
-                  <input type="text" inputmode="numeric" id="pace-swim-speedMin" class="pace-input mono" data-disc="swim" data-field="speedMin" placeholder="2:05" aria-label="Swim slow pace min:sec per 100m" autocomplete="off" spellcheck="false">
+                  <input type="text" inputmode="text" enterkeyhint="done" id="pace-swim-speedMin" class="pace-input mono" data-disc="swim" data-field="speedMin" placeholder="2:05" aria-label="Swim slow pace min:sec per 100m" autocomplete="off" spellcheck="false" autocapitalize="off">
                   <span>–</span>
-                  <input type="text" inputmode="numeric" id="pace-swim-speedMax" class="pace-input mono" data-disc="swim" data-field="speedMax" placeholder="1:50" aria-label="Swim fast pace min:sec per 100m" autocomplete="off" spellcheck="false">
+                  <input type="text" inputmode="text" enterkeyhint="done" id="pace-swim-speedMax" class="pace-input mono" data-disc="swim" data-field="speedMax" placeholder="1:50" aria-label="Swim fast pace min:sec per 100m" autocomplete="off" spellcheck="false" autocapitalize="off">
                 </div>
                 <span class="pace-hint" id="pace-swim-speed-hint"></span>
                 <div class="pace-estimate" id="pace-swim-estimate">Enter a pace range to set swim duration.</div>
@@ -935,6 +943,12 @@
             <div class="time-row pace-time-row">
               <label class="seg-label seg-bike"><span class="seg-dot"></span>Bike</label>
               <div class="pace-inline">
+                <label class="pace-inline-label">Heart rate (bpm)</label>
+                <div class="pace-hr-row">
+                  <input type="number" inputmode="numeric" id="pace-bike-hrMin" class="pace-input mono" data-disc="bike" data-field="hrMin" min="0" max="250" step="1" placeholder="Min" aria-label="Bike HR minimum">
+                  <span>–</span>
+                  <input type="number" inputmode="numeric" id="pace-bike-hrMax" class="pace-input mono" data-disc="bike" data-field="hrMax" min="0" max="250" step="1" placeholder="Max" aria-label="Bike HR maximum">
+                </div>
                 <label class="pace-inline-label" id="pace-bike-speed-label">Speed range</label>
                 <div class="pace-hr-row">
                   <input type="number" inputmode="decimal" id="pace-bike-speedMin" class="pace-input mono" data-disc="bike" data-field="speedMin" min="0" step="0.1" placeholder="Slow" aria-label="Bike slow speed">
@@ -957,11 +971,17 @@
             <div class="time-row pace-time-row">
               <label class="seg-label seg-run"><span class="seg-dot"></span>Run</label>
               <div class="pace-inline">
+                <label class="pace-inline-label">Heart rate (bpm)</label>
+                <div class="pace-hr-row">
+                  <input type="number" inputmode="numeric" id="pace-run-hrMin" class="pace-input mono" data-disc="run" data-field="hrMin" min="0" max="250" step="1" placeholder="Min" aria-label="Run HR minimum">
+                  <span>–</span>
+                  <input type="number" inputmode="numeric" id="pace-run-hrMax" class="pace-input mono" data-disc="run" data-field="hrMax" min="0" max="250" step="1" placeholder="Max" aria-label="Run HR maximum">
+                </div>
                 <label class="pace-inline-label" id="pace-run-speed-label">Pace (min:sec / km)</label>
                 <div class="pace-hr-row">
-                  <input type="text" inputmode="numeric" id="pace-run-speedMin" class="pace-input mono" data-disc="run" data-field="speedMin" placeholder="6:45" aria-label="Run slow pace min:sec per km" autocomplete="off" spellcheck="false">
+                  <input type="text" inputmode="text" enterkeyhint="done" id="pace-run-speedMin" class="pace-input mono" data-disc="run" data-field="speedMin" placeholder="6:45" aria-label="Run slow pace min:sec per km" autocomplete="off" spellcheck="false" autocapitalize="off">
                   <span>–</span>
-                  <input type="text" inputmode="numeric" id="pace-run-speedMax" class="pace-input mono" data-disc="run" data-field="speedMax" placeholder="6:00" aria-label="Run fast pace min:sec per km" autocomplete="off" spellcheck="false">
+                  <input type="text" inputmode="text" enterkeyhint="done" id="pace-run-speedMax" class="pace-input mono" data-disc="run" data-field="speedMax" placeholder="6:00" aria-label="Run fast pace min:sec per km" autocomplete="off" spellcheck="false" autocapitalize="off">
                 </div>
                 <span class="pace-hint" id="pace-run-speed-hint"></span>
                 <div class="pace-estimate" id="pace-run-estimate">Enter a pace range to set run duration.</div>
@@ -1150,7 +1170,7 @@
       </div>
 
       <div class="print-only print-paces">
-        <h2>Paces &amp; speeds</h2>
+        <h2>Paces, speeds &amp; heart rate</h2>
         <table class="print-paces-table" id="printPacesTable"></table>
       </div>
 
@@ -1261,7 +1281,7 @@ var state = null;
 var activeSavedId = null;
 
 function defaultPaceDiscipline() {
-  return { speedMin: '', speedMax: '' };
+  return { hrMin: '', hrMax: '', speedMin: '', speedMax: '' };
 }
 
 function defaultPaces() {
@@ -1290,7 +1310,9 @@ function normalizeOptionalNumber(val, min, max, decimals) {
 function normalizePaceDiscipline(src) {
   var d = defaultPaceDiscipline();
   if (!src || typeof src !== 'object') return d;
-  /* Speeds are always stored in km/h (legacy zone/HR/notes fields ignored) */
+  d.hrMin = normalizeOptionalNumber(src.hrMin, 0, 250, null);
+  d.hrMax = normalizeOptionalNumber(src.hrMax, 0, 250, null);
+  /* Speeds are always stored in km/h */
   d.speedMin = normalizeOptionalNumber(src.speedMin, 0, 100, 2);
   d.speedMax = normalizeOptionalNumber(src.speedMax, 0, 100, 2);
   return d;
@@ -3026,8 +3048,12 @@ function syncPacesInputs() {
   updateRaceDistanceHint();
   ['swim', 'bike', 'run'].forEach(function (disc) {
     var p = state.paces[disc];
+    var hrMinEl = document.getElementById('pace-' + disc + '-hrMin');
+    var hrMaxEl = document.getElementById('pace-' + disc + '-hrMax');
     var speedMinEl = document.getElementById('pace-' + disc + '-speedMin');
     var speedMaxEl = document.getElementById('pace-' + disc + '-speedMax');
+    if (hrMinEl) hrMinEl.value = p.hrMin === '' ? '' : p.hrMin;
+    if (hrMaxEl) hrMaxEl.value = p.hrMax === '' ? '' : p.hrMax;
     if (usesPaceInput(disc)) {
       /* Normalize so left = slower pace, right = faster pace */
       var pairPace = orderedSpeedPair(p);
@@ -3059,6 +3085,13 @@ function syncPacesInputs() {
   updateRaceTotalEstimateUI();
 }
 
+function fmtHrRange(p) {
+  if (p.hrMin === '' && p.hrMax === '') return '—';
+  if (p.hrMin !== '' && p.hrMax !== '') return p.hrMin + '–' + p.hrMax + ' bpm';
+  if (p.hrMin !== '') return p.hrMin + '+ bpm';
+  return '≤' + p.hrMax + ' bpm';
+}
+
 function renderPrintPaces() {
   var el = document.getElementById('printPacesTable');
   if (!el) return;
@@ -3070,6 +3103,7 @@ function renderPrintPaces() {
     var dur = est ? fmtHM(est.slowHours) : '—';
     return '<tr>' +
       '<td><strong>' + label + '</strong> · ' + escapeHtml(formatDistanceLabel(disc)) + '</td>' +
+      '<td>' + escapeHtml(fmtHrRange(p)) + '</td>' +
       '<td>' + escapeHtml(fmtSpeedRange(p, disc)) + '</td>' +
       '<td>' + escapeHtml(dur) + '</td>' +
     '</tr>';
@@ -3082,9 +3116,9 @@ function renderPrintPaces() {
   }
   var fmt = normalizeRaceFormat(state.raceFormat);
   el.innerHTML =
-    '<thead><tr><th>Discipline · ' + (fmt === 'half' ? '70.3' : 'Ironman 140.6') + '</th><th>Pace / speed</th><th>Plan duration</th></tr></thead>' +
+    '<thead><tr><th>Discipline · ' + (fmt === 'half' ? '70.3' : 'Ironman 140.6') + '</th><th>Heart rate</th><th>Pace / speed</th><th>Plan duration</th></tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
-    '<tfoot><tr><td colspan="2"><strong>Race total</strong> (swim + bike + run + T1/T2, longest estimates)</td><td><strong>' +
+    '<tfoot><tr><td colspan="3"><strong>Race total</strong> (swim + bike + run + T1/T2, longest estimates)</td><td><strong>' +
       escapeHtml(totalLabel) + '</strong></td></tr></tfoot>';
 }
 
@@ -3197,6 +3231,14 @@ document.getElementById('tab-setup').addEventListener('input', function (e) {
     var disc = e.target.dataset.disc;
     var field = e.target.dataset.field;
     if (!disc || !field || !state.paces[disc]) return;
+    if (field === 'hrMin' || field === 'hrMax') {
+      var rawHr = e.target.value;
+      if (rawHr === '' || rawHr == null) state.paces[disc][field] = '';
+      else state.paces[disc][field] = Math.max(0, Math.min(250, Math.floor(Number(rawHr) || 0)));
+      renderPrintPaces();
+      saveStateDebounced();
+      return;
+    }
     if (field === 'speedMin' || field === 'speedMax') {
       if (usesPaceInput(disc)) {
         var rawPace = String(e.target.value || '').trim();
