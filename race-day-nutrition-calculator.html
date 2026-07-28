@@ -1,0 +1,3357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="dark" />
+<title>Race Day Fueling Planner — Ironman Nutrition Calculator</title>
+<style>
+  :root{
+    /* ---- Palette: dark asphalt base, course-marking yellow accent, ---- */
+    /* ---- functional segment colors (swim/bike/run) + traffic status colors ---- */
+    --bg: #110f0d;
+    --bg-vignette: radial-gradient(ellipse 1200px 700px at 50% -10%, #1c1712 0%, #110f0d 55%);
+    --panel: #1a1613;
+    --panel-2: #221c18;
+    --panel-3: #2a231e;
+    --border: #43382e;
+    --border-soft: #2e271f;
+    --text: #f7f2ea;
+    --text-dim: #d2c6b6;
+    --text-faint: #a59785;
+
+    --accent: #e7b23a;
+    --accent-dim: #b8891f;
+    --accent-soft: rgba(231,178,58,0.14);
+    --accent-ink: #241a04;
+
+    --swim: #4fa9d6;
+    --swim-soft: rgba(79,169,214,0.14);
+    --t-color: #8c8275;
+    --t-soft: rgba(140,130,117,0.16);
+    --bike: #e2762f;
+    --bike-soft: rgba(226,118,47,0.14);
+    --run: #6fb35a;
+    --run-soft: rgba(111,179,90,0.14);
+
+    --green: #3fae62;
+    --green-soft: rgba(63,174,98,0.15);
+    --yellow: #e0a73a;
+    --yellow-soft: rgba(224,167,58,0.16);
+    --red: #e5484d;
+    --red-soft: rgba(229,72,77,0.16);
+    --neutral: #8a8072;
+    --neutral-soft: rgba(138,128,114,0.14);
+
+    --radius-s: 7px;
+    --radius-m: 12px;
+    --radius-l: 18px;
+    --shadow-card: 0 1px 0 rgba(255,255,255,0.02) inset, 0 10px 28px -16px rgba(0,0,0,0.65);
+
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0;
+    background: var(--bg-vignette), var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    font-size:16px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  h1,h2,h3,h4{ margin:0; font-weight:800; line-height:1.3; }
+  p{ margin:0 0 8px; }
+  ul{ margin:8px 0; padding-left:20px; }
+  li{ margin-bottom:5px; }
+  button{ font-family:inherit; cursor:pointer; }
+  input,select{ font-family:inherit; }
+  a{ color:var(--accent); }
+  .num, .tabular{ font-variant-numeric:tabular-nums; }
+  ::selection{ background:var(--accent-soft); color:var(--text); }
+
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{ background:var(--panel-3); border-radius:8px; border:2px solid var(--bg); }
+
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }
+
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    text-transform:uppercase; font-weight:800; letter-spacing:.04em;
+    font-size:.9rem; color:var(--text);
+  }
+  .eyebrow::before{
+    content:""; width:3px; height:14px; border-radius:2px; background:var(--accent); display:inline-block;
+  }
+  .eyebrow.swim::before{ background:var(--swim); }
+  .eyebrow.bike::before{ background:var(--bike); }
+  .eyebrow.run::before{ background:var(--run); }
+  .eyebrow.t::before{ background:var(--t-color); }
+
+  /* ================= Layout shell ================= */
+  .app-shell{ max-width:1360px; margin:0 auto; padding:0 20px 60px; }
+  .sticky-top{
+    position:sticky; top:0; z-index:40;
+    background:rgba(17,15,13,0.88);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border-soft);
+  }
+  .sticky-inner{ max-width:1360px; margin:0 auto; padding:0 20px; }
+
+  .app-header{
+    display:flex; align-items:center; justify-content:space-between; gap:18px;
+    padding:16px 0 12px; flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand-mark{
+    width:40px; height:40px; border-radius:10px;
+    background:linear-gradient(155deg, var(--swim) 0%, var(--swim) 33%, var(--bike) 33%, var(--bike) 66%, var(--run) 66%, var(--run) 100%);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:900; color:#110f0d; font-size:.82rem; letter-spacing:.04em; flex:none;
+    box-shadow:0 4px 14px -6px rgba(0,0,0,0.6);
+  }
+  .brand-text h1{ font-size:1.12rem; letter-spacing:.01em; text-transform:uppercase; }
+  .tagline{ margin:2px 0 0; font-size:.88rem; color:var(--text-dim); }
+
+  .header-controls{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .plan-name-input{
+    background:var(--panel); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-s); padding:9px 12px; font-size:.9rem; width:200px;
+  }
+  .plan-name-input::placeholder{ color:var(--text-faint); }
+
+  .unit-toggle{ display:flex; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-s); overflow:hidden; }
+  .unit-btn{
+    background:transparent; border:none; color:var(--text-dim); padding:9px 14px; font-size:.88rem; font-weight:700;
+  }
+  .unit-btn.active{ background:var(--accent); color:var(--accent-ink); }
+
+  .btn{
+    border-radius:var(--radius-s); padding:9px 15px; font-size:.9rem; font-weight:700;
+    border:1px solid var(--border); background:var(--panel); color:var(--text);
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+    transition:border-color .15s ease, background .15s ease, transform .1s ease;
+  }
+  .btn:hover{ border-color:var(--text-faint); }
+  .btn:active{ transform:translateY(1px); }
+  .btn-primary{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+  .btn-primary:hover{ background:#f0bd4f; border-color:#f0bd4f; }
+  .btn-accent{ background:var(--panel-3); border-color:var(--accent-dim); color:var(--accent); }
+  .btn-ghost{ background:transparent; }
+  .btn-small{ padding:7px 11px; font-size:.88rem; }
+  .btn-danger-text{ color:var(--red); }
+
+  /* ================= Live split-board bar ================= */
+  .live-bar{
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0, 1fr));
+    gap:0;
+    border-top:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);
+    background:#0c0a09; overflow:hidden;
+  }
+  .live-stat{
+    min-width:0; padding:10px 12px;
+    border-right:1px solid var(--border-soft);
+    border-bottom:1px solid var(--border-soft);
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .live-stat:nth-child(4n){ border-right:none; }
+  .live-stat:nth-last-child(-n+4){ border-bottom:none; }
+  .live-label{ font-size:.8rem; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); font-weight:700; white-space:nowrap; }
+  .live-value{
+    font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-weight:700; font-size:1.1rem; color:var(--text);
+    white-space:nowrap;
+  }
+  .live-value.green{ color:var(--green); }
+  .live-value.yellow{ color:var(--yellow); }
+  .live-value.red{ color:var(--red); }
+  @media (max-width: 560px){
+    .live-bar{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    .live-stat:nth-child(4n){ border-right:1px solid var(--border-soft); }
+    .live-stat:nth-child(2n){ border-right:none; }
+    .live-stat:nth-last-child(-n+4){ border-bottom:1px solid var(--border-soft); }
+    .live-stat:nth-last-child(-n+2){ border-bottom:none; }
+  }
+
+  /* ================= Tabs ================= */
+  .tabs{ display:flex; gap:4px; overflow-x:auto; padding:10px 0; }
+  .tab-btn{
+    background:transparent; border:1px solid transparent; color:var(--text-dim);
+    padding:9px 14px; border-radius:var(--radius-s); font-size:.88rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.02em; white-space:nowrap;
+  }
+  .tab-btn:hover{ color:var(--text); }
+  .tab-btn.active{ background:var(--panel-2); color:var(--accent); border-color:var(--border); }
+
+  main{ padding-top:22px; }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; animation:fadeIn .18s ease; }
+  @media (prefers-reduced-motion: reduce){ .tab-panel.active{ animation:none; } }
+  @keyframes fadeIn{ from{ opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ================= Cards ================= */
+  .panel-grid{ display:grid; grid-template-columns:1.1fr 1fr; gap:18px; align-items:start; }
+  .card{
+    background:var(--panel); border:1px solid var(--border-soft); border-radius:var(--radius-l);
+    padding:20px 22px; box-shadow:var(--shadow-card); margin-bottom:18px;
+  }
+  .card > h2{ font-size:1.05rem; }
+  .card-hint{ color:var(--text-dim); font-size:.95rem; margin-top:6px; max-width:60ch; line-height:1.5; }
+  .card-header-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-bottom:4px; }
+  .card-header-actions{ display:flex; gap:8px; flex:none; }
+  .tip-card{ background:var(--panel-2); }
+  .tip-card h3{ font-size:.9rem; text-transform:uppercase; letter-spacing:.03em; color:var(--accent); margin-bottom:8px; }
+  .tip-card ul{ color:var(--text-dim); font-size:.92rem; line-height:1.5; }
+
+  /* ================= Setup tab ================= */
+  .time-grid{ display:flex; flex-direction:column; gap:10px; margin-top:16px; }
+  .time-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .seg-label{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:.92rem; min-width:110px; }
+  .seg-dot{ width:9px; height:9px; border-radius:50%; flex:none; }
+  .seg-swim .seg-dot{ background:var(--swim); }
+  .seg-bike .seg-dot{ background:var(--bike); }
+  .seg-run .seg-dot{ background:var(--run); }
+  .seg-t .seg-dot{ background:var(--t-color); }
+  .hm-inputs{ display:flex; align-items:center; gap:6px; }
+  .hm-inputs span{ color:var(--text-dim); font-size:.9rem; }
+  .time-input{
+    width:56px; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-s); padding:8px 8px; font-family:var(--font-mono); font-size:.95rem; text-align:center;
+  }
+  .start-time-input{
+    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-s); padding:8px 10px; font-family:var(--font-mono); font-size:.95rem;
+    color-scheme: dark;
+  }
+
+  .timeline-wrap{ margin-top:18px; }
+  .timeline-bar{
+    display:flex; height:10px; border-radius:6px; overflow:hidden; background:var(--panel-2);
+    border:1px solid var(--border-soft);
+  }
+  .timeline-seg{ height:100%; }
+  .timeline-total{ margin-top:8px; font-size:.9rem; color:var(--text-dim); font-family:var(--font-mono); }
+  .schedule-list{
+    margin-top:14px; display:flex; flex-direction:column; gap:0;
+    border:1px solid var(--border-soft); border-radius:var(--radius-m); overflow:hidden;
+  }
+  .schedule-row{
+    display:grid; grid-template-columns:110px 1fr auto; gap:10px; align-items:center;
+    padding:10px 12px; border-bottom:1px solid var(--border-soft); font-size:.92rem;
+  }
+  .schedule-row:last-child{ border-bottom:none; }
+  .schedule-row:nth-child(even){ background:rgba(255,255,255,0.02); }
+  .schedule-clock{ font-family:var(--font-mono); font-weight:700; color:var(--accent); white-space:nowrap; }
+  .schedule-label{ font-weight:700; }
+  .schedule-dur{ font-family:var(--font-mono); font-size:.88rem; color:var(--text-dim); }
+
+  .target-grid{ display:flex; flex-direction:column; gap:16px; margin-top:16px; }
+  .target-row label{ font-weight:700; font-size:.92rem; display:block; margin-bottom:6px; }
+  .minmax-inputs{ display:flex; align-items:center; gap:8px; }
+  .minmax-inputs span{ color:var(--text-dim); }
+  .target-input{
+    width:84px; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-s); padding:8px 9px; font-family:var(--font-mono); font-size:.95rem; text-align:center;
+  }
+  .target-note{ display:block; margin-top:6px; font-size:.88rem; color:var(--text-dim); line-height:1.45; }
+
+  /* ================= Products tab ================= */
+  .table-scroll{ overflow-x:auto; margin-top:14px; border:1px solid var(--border-soft); border-radius:var(--radius-m); }
+  table{ width:100%; border-collapse:collapse; font-size:.95rem; }
+  thead th{
+    text-align:left; padding:11px 12px; background:var(--panel-2); color:var(--text-dim);
+    text-transform:uppercase; font-size:.82rem; letter-spacing:.04em; font-weight:800;
+    border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  tbody td{ padding:11px 12px; border-bottom:1px solid var(--border-soft); vertical-align:middle; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:var(--panel-2); }
+  td.num, th.num{ font-family:var(--font-mono); text-align:right; }
+  .cell-name{ font-weight:700; }
+  .row-actions{ display:flex; gap:6px; justify-content:flex-end; }
+  .icon-btn{
+    background:transparent; border:1px solid var(--border); color:var(--text-dim);
+    width:30px; height:30px; border-radius:var(--radius-s); font-size:.85rem;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:hover{ color:var(--text); border-color:var(--text-faint); }
+  .empty-row{ text-align:center; color:var(--text-dim); padding:26px 12px; }
+
+  /* ================= Log tab ================= */
+  .segment-heading{ display:flex; align-items:baseline; gap:10px; margin:26px 0 12px; flex-wrap:wrap; }
+  .segment-heading:first-child{ margin-top:0; }
+  .segment-heading-stat{ font-size:.9rem; color:var(--text-dim); font-family:var(--font-mono); text-transform:none; letter-spacing:0; font-weight:600; }
+  .eyebrow.morning::before{ background:var(--accent); }
+
+  .block-rows{
+    display:flex; flex-direction:column; gap:0;
+    border:1px solid var(--border-soft); border-radius:var(--radius-m);
+    overflow:hidden; background:var(--panel); margin-bottom:4px;
+  }
+  .block-card{
+    display:grid; grid-template-columns:minmax(170px, 220px) 1fr; gap:12px 20px;
+    padding:14px 16px; margin:0; border:none; border-radius:0; border-bottom:1px solid var(--border-soft);
+    background:transparent; box-shadow:none;
+  }
+  .block-card:last-child{ border-bottom:none; }
+  .block-card:nth-child(even){ background:rgba(255,255,255,0.015); }
+  .block-card.status-red{ box-shadow:inset 3px 0 0 var(--red); }
+  .block-card.status-yellow{ box-shadow:inset 3px 0 0 var(--yellow); }
+  .block-card.status-green{ box-shadow:inset 3px 0 0 var(--green); }
+  .nutrient-status.green{ color:var(--green); font-weight:700; }
+  .nutrient-status.yellow{ color:var(--yellow); font-weight:700; }
+  .nutrient-status.red{ color:var(--red); font-weight:700; }
+  .nutrient-status.neutral{ color:var(--text-dim); }
+  .block-side{ display:flex; flex-direction:column; gap:8px; min-width:0; }
+  .block-header{ display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin-bottom:0; }
+  .block-header h4{ font-size:.95rem; font-weight:800; line-height:1.35; }
+  .block-time{ display:block; font-weight:500; color:var(--text-dim); font-size:.88rem; font-family:var(--font-mono); margin-top:3px; }
+  .block-badges{ display:flex; flex-wrap:wrap; gap:5px; justify-content:flex-start; }
+  .block-main{ min-width:0; display:flex; flex-direction:column; gap:8px; }
+
+  .mini-badge{
+    font-family:var(--font-mono); font-size:1rem; font-weight:700; padding:5px 10px; border-radius:6px;
+    border:1px solid transparent; white-space:nowrap;
+  }
+  .mini-badge.green{ background:var(--green-soft); color:var(--green); border-color:rgba(63,174,98,.3); }
+  .mini-badge.yellow{ background:var(--yellow-soft); color:var(--yellow); border-color:rgba(224,167,58,.3); }
+  .mini-badge.red{ background:var(--red-soft); color:var(--red); border-color:rgba(229,72,77,.3); }
+  .mini-badge.neutral{ background:var(--neutral-soft); color:var(--neutral); }
+
+  .block-items{ display:flex; flex-direction:column; gap:0; min-height:0; }
+  .item-row{
+    display:grid; grid-template-columns:minmax(120px, 1fr) 56px minmax(140px, 1.2fr) 26px; align-items:center; gap:8px;
+    padding:8px 0; border-bottom:1px solid var(--border-soft);
+  }
+  .item-row:last-child{ border-bottom:none; }
+  .item-row-warning .item-name{ color:var(--yellow); }
+  .item-name{ font-size:.95rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .item-qty-input{
+    width:56px; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    border-radius:6px; padding:6px 6px; font-family:var(--font-mono); font-size:.9rem; text-align:center;
+  }
+  .item-macro{ font-size:.88rem; color:var(--text-dim); font-family:var(--font-mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .remove-item-btn{
+    background:transparent; border:none; color:var(--text-dim); width:24px; height:24px; border-radius:6px; font-size:.86rem;
+  }
+  .remove-item-btn:hover{ color:var(--red); background:var(--red-soft); }
+
+  .block-add-row{ display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; }
+  .product-select{
+    flex:1; min-width:160px; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-s); padding:8px 9px; font-size:.9rem;
+  }
+  .add-qty-input{
+    width:52px; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-s); padding:8px 6px; font-family:var(--font-mono); font-size:.9rem; text-align:center;
+  }
+  .block-totals{
+    margin-top:2px; padding-top:8px; border-top:1px dashed var(--border);
+    font-size:.95rem; color:var(--text-dim);
+  }
+  .block-totals strong{ color:var(--text); }
+  .block-totals .nutrient-status{ font-size:1.05rem; }
+
+  .empty-hint{
+    color:var(--text-dim); font-size:.92rem; padding:18px; border:1px dashed var(--border);
+    border-radius:var(--radius-m);
+  }
+  .block-rows > .empty-hint{
+    border:none; border-radius:0; margin:0;
+  }
+  .empty-hint.small{ padding:6px 0; border:none; font-size:.9rem; }
+
+  /* ================= Summary tab ================= */
+  .stat-cards{ display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; margin-bottom:18px; }
+  .stat-card{
+    background:var(--panel); border:1px solid var(--border-soft); border-radius:var(--radius-m);
+    padding:16px; text-align:left; box-shadow:var(--shadow-card);
+  }
+  .stat-icon{ font-size:1.1rem; margin-bottom:8px; }
+  .stat-value{ font-family:var(--font-mono); font-weight:800; font-size:1.55rem; color:var(--accent); }
+  .stat-unit{ font-size:.88rem; color:var(--text-dim); font-weight:700; margin-left:3px; }
+  .stat-label{ font-size:.84rem; text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); margin-top:4px; font-weight:700; }
+
+  .rate-compare{ display:flex; flex-direction:column; gap:20px; margin-top:14px; }
+  .rate-row-label{ font-weight:800; font-size:.95rem; margin-bottom:10px; }
+  .rate-row-unit{ font-weight:500; color:var(--text-dim); font-size:.88rem; }
+  .rate-row-cols{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .rate-row-cols.cols-3{ grid-template-columns:1fr 1fr 1fr; }
+  .rate-col-head{ font-size:.84rem; text-transform:uppercase; letter-spacing:.04em; font-weight:800; margin-bottom:6px; }
+  .rate-col-head.morning{ color:var(--accent); }
+  .rate-col-head.bike{ color:var(--bike); }
+  .rate-col-head.run{ color:var(--run); }
+  .rate-col-value{ font-family:var(--font-mono); font-size:1.3rem; font-weight:800; }
+
+  .discipline-table{ width:100%; margin-top:12px; }
+  .discipline-table th, .discipline-table td{ font-size:.92rem; }
+  .discipline-name{ font-weight:700; }
+  .discipline-name .seg-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:middle; }
+  .discipline-sub{ display:block; font-size:.86rem; color:var(--text-dim); font-weight:500; margin-top:2px; font-family:var(--font-mono); }
+  .discipline-table tbody tr.discipline-total td{ background:var(--panel-2); font-weight:800; border-top:2px solid var(--border); }
+
+  .gauge{ position:relative; height:8px; background:var(--panel-2); border-radius:4px; margin:8px 0; overflow:hidden; }
+  .gauge-band{ position:absolute; top:0; bottom:0; background:rgba(255,255,255,0.07); }
+  .gauge-fill{ position:absolute; top:0; bottom:0; left:0; border-radius:4px; transition:width .25s ease; }
+  .gauge-fill.green{ background:var(--green); }
+  .gauge-fill.yellow{ background:var(--yellow); }
+  .gauge-fill.red{ background:var(--red); }
+  .gauge-fill.neutral{ background:var(--neutral); }
+  @media (prefers-reduced-motion: reduce){ .gauge-fill{ transition:none; } }
+  .gauge-marker{ position:absolute; top:-3px; width:2px; height:14px; background:var(--text); }
+
+  .badge{
+    display:inline-block; font-size:.84rem; font-weight:800; padding:4px 9px; border-radius:6px;
+    border:1px solid transparent;
+  }
+  .badge.green{ background:var(--green-soft); color:var(--green); border-color:rgba(63,174,98,.3); }
+  .badge.yellow{ background:var(--yellow-soft); color:var(--yellow); border-color:rgba(224,167,58,.3); }
+  .badge.red{ background:var(--red-soft); color:var(--red); border-color:rgba(229,72,77,.3); }
+  .badge.neutral{ background:var(--neutral-soft); color:var(--neutral); }
+
+  .timeline-list{ display:flex; flex-direction:column; gap:0; margin-top:10px; }
+  .timeline-entry{
+    display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--border-soft);
+    font-size:.9rem;
+  }
+  .timeline-entry:last-child{ border-bottom:none; }
+  .timeline-amount{ color:var(--accent); font-family:var(--font-mono); font-weight:700; }
+  .timeline-running{ color:var(--text-dim); font-family:var(--font-mono); font-size:.9rem; }
+  .advisory{ margin-top:12px; padding:12px 14px; border-radius:var(--radius-s); font-size:.9rem; line-height:1.45; }
+  .advisory.red{ background:var(--red-soft); color:#f3b2b4; }
+  .advisory.neutral{ background:var(--panel-2); color:var(--text-dim); }
+
+  .plan-table{ table-layout:fixed; width:100%; }
+  .plan-table th, .plan-table td{ font-size:.92rem; }
+  .plan-table .seg-cell{ width:18%; white-space:nowrap; }
+  .plan-table .seg-name{ font-weight:700; }
+  .plan-table .seg-range{
+    display:block; margin-top:2px; font-weight:500; font-family:var(--font-mono);
+    font-size:.84rem; color:var(--text-dim);
+  }
+  .plan-table .items-cell{ width:28%; word-break:break-word; }
+  .plan-table .num{ width:7%; }
+  .plan-table .rate-cell{
+    width:16%; font-family:var(--font-mono); font-size:.84rem; color:var(--text-dim); white-space:nowrap;
+  }
+  .plan-table tfoot td{ font-weight:800; color:var(--text); background:var(--panel-2); border-top:2px solid var(--border); }
+
+  .disclaimer{ margin-top:22px; font-size:.9rem; color:var(--text-dim); max-width:76ch; line-height:1.5; }
+  .print-only{ display:none; }
+
+  /* ================= Servings summary ================= */
+  .servings-summary{ margin-bottom:18px; }
+  .servings-summary > summary{
+    list-style:none; cursor:pointer; display:flex; align-items:baseline; justify-content:space-between;
+    gap:12px; flex-wrap:wrap; user-select:none;
+  }
+  .servings-summary > summary::-webkit-details-marker{ display:none; }
+  .servings-summary-title{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:1.05rem; font-weight:800;
+  }
+  .servings-summary-title::before{
+    content:""; width:3px; height:14px; border-radius:2px; background:var(--accent); display:inline-block;
+  }
+  .servings-summary-title::after{
+    content:"▸"; color:var(--text-dim); font-size:.85rem; font-weight:700; margin-left:4px;
+    transition:transform .15s ease;
+  }
+  .servings-summary[open] .servings-summary-title::after{ transform:rotate(90deg); }
+  .servings-summary-stat{ font-size:.9rem; color:var(--text-dim); font-family:var(--font-mono); font-weight:600; }
+  .servings-summary .card-hint{ margin-top:10px; }
+  .servings-list{
+    margin-top:12px; border:1px solid var(--border-soft); border-radius:var(--radius-m); overflow:hidden;
+  }
+  .servings-row{
+    display:grid; grid-template-columns:72px 1fr; gap:12px; align-items:baseline;
+    padding:10px 12px; border-bottom:1px solid var(--border-soft); font-size:.95rem;
+  }
+  .servings-row:last-child{ border-bottom:none; }
+  .servings-row:nth-child(even){ background:rgba(255,255,255,0.015); }
+  .servings-qty{
+    font-family:var(--font-mono); font-weight:800; color:var(--accent); text-align:right; white-space:nowrap;
+  }
+  .servings-name{ font-weight:700; }
+  .servings-breakdown{ font-weight:500; color:var(--text-dim); }
+  .servings-serving{ display:block; margin-top:2px; font-size:.88rem; color:var(--text-dim); font-weight:500; }
+  .servings-empty{ padding:16px 12px; color:var(--text-dim); font-size:.92rem; }
+
+  /* ================= Paces tab ================= */
+  .paces-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; align-items:start; }
+  .pace-card .pace-fields{ display:flex; flex-direction:column; gap:12px; margin-top:14px; }
+  .pace-field{ display:flex; flex-direction:column; gap:6px; }
+  .pace-field label{ font-size:.88rem; font-weight:700; color:var(--text-dim); }
+  .pace-field input, .pace-field textarea{
+    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-s); padding:9px 10px; font-size:.92rem; font-weight:500;
+    width:100%;
+  }
+  .pace-field textarea{ min-height:64px; resize:vertical; line-height:1.45; font-family:inherit; }
+  .pace-field input.mono{ font-family:var(--font-mono); }
+  .pace-hr-row{ display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center; }
+  .pace-hr-row span{ color:var(--text-dim); font-weight:700; text-align:center; }
+  .pace-card.swim{ border-top:3px solid var(--swim); }
+  .pace-card.bike{ border-top:3px solid var(--bike); }
+  .pace-card.run{ border-top:3px solid var(--run); }
+  .pace-estimate{
+    margin-top:4px; padding:10px 12px; border-radius:var(--radius-s);
+    background:var(--panel-2); border:1px solid var(--border-soft);
+    font-size:.9rem; color:var(--text-dim);
+  }
+  .pace-estimate strong{ color:var(--text); font-family:var(--font-mono); }
+  .pace-hint{ display:block; margin-top:5px; font-size:.84rem; color:var(--text-dim); font-family:var(--font-mono); }
+  .pace-apply-row{ margin-top:14px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .race-format-toggle{ display:flex; background:var(--panel-2); border:1px solid var(--border); border-radius:var(--radius-s); overflow:hidden; margin-top:12px; width:fit-content; }
+  .race-format-btn{
+    background:transparent; border:none; color:var(--text-dim); padding:8px 14px; font-size:.88rem; font-weight:700;
+  }
+  .race-format-btn.active{ background:var(--accent); color:var(--accent-ink); }
+  .print-paces{ display:none; }
+  .print-paces-table{ width:100%; }
+
+  /* ================= Modal ================= */
+  dialog#productModal, dialog#savedPlansModal{
+    background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:var(--radius-l);
+    padding:22px; width:min(480px, 92vw); box-shadow:0 30px 60px -20px rgba(0,0,0,0.7);
+  }
+  dialog#savedPlansModal{ width:min(560px, 94vw); }
+  dialog#productModal::backdrop, dialog#savedPlansModal::backdrop{ background:rgba(8,7,6,0.7); backdrop-filter:blur(2px); }
+  dialog#productModal h3, dialog#savedPlansModal h3{ font-size:.95rem; margin-bottom:16px; text-transform:uppercase; letter-spacing:.03em; }
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .form-field{ display:flex; flex-direction:column; gap:6px; font-size:.9rem; font-weight:700; color:var(--text-dim); }
+  .form-field.full{ grid-column:1/-1; }
+  .form-field input{
+    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-s); padding:9px 10px; font-size:.92rem; font-weight:500;
+  }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:18px; flex-wrap:wrap; }
+  .modal-hint{ font-size:.9rem; color:var(--text-dim); margin-bottom:14px; line-height:1.45; }
+  .saved-list{ display:flex; flex-direction:column; gap:8px; max-height:min(420px, 55vh); overflow-y:auto; margin-top:4px; }
+  .saved-item{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    padding:12px 14px; background:var(--panel-2); border:1px solid var(--border-soft); border-radius:var(--radius-m);
+  }
+  .saved-item.active{ border-color:var(--accent-dim); background:var(--accent-soft); }
+  .saved-item-meta{ min-width:0; flex:1; }
+  .saved-item-name{ font-weight:800; font-size:.95rem; }
+  .saved-item-date{ font-size:.88rem; color:var(--text-dim); font-family:var(--font-mono); margin-top:3px; }
+  .saved-item-actions{ display:flex; gap:6px; flex:none; }
+  .saved-empty{ text-align:center; color:var(--text-dim); padding:28px 12px; font-size:.9rem; }
+  .save-row{ display:flex; gap:8px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; }
+  .save-row .form-field{ flex:1; min-width:180px; }
+  .save-status{ font-size:.88rem; color:var(--text-dim); font-weight:600; white-space:nowrap; }
+
+  /* ================= Toast ================= */
+  .toast{
+    position:fixed; left:50%; bottom:22px; transform:translate(-50%, 14px);
+    background:var(--panel-3); border:1px solid var(--border); color:var(--text);
+    padding:11px 18px; border-radius:var(--radius-m); font-size:.84rem; font-weight:600;
+    opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+    z-index:200; box-shadow:0 14px 30px -10px rgba(0,0,0,0.6); max-width:90vw;
+  }
+  .toast.show{ opacity:1; transform:translate(-50%, 0); }
+  .toast.success{ border-color:rgba(63,174,98,.4); }
+  .toast.error{ border-color:rgba(229,72,77,.4); }
+
+  footer{ margin-top:34px; padding-top:18px; border-top:1px solid var(--border-soft); color:var(--text-dim); font-size:.9rem; }
+
+  /* ================= Responsive ================= */
+  @media (max-width: 980px){
+    .panel-grid{ grid-template-columns:1fr; }
+    .paces-grid{ grid-template-columns:1fr; }
+    .stat-cards{ grid-template-columns:repeat(3,1fr); }
+    .rate-row-cols.cols-3{ grid-template-columns:1fr 1fr; }
+  }
+  @media (max-width: 760px){
+    .app-header{ flex-direction:column; align-items:stretch; }
+    .header-controls{ justify-content:space-between; }
+    .plan-name-input{ width:100%; order:-1; }
+    .rate-row-cols{ grid-template-columns:1fr; }
+    .rate-row-cols.cols-3{ grid-template-columns:1fr; }
+    .stat-cards{ grid-template-columns:repeat(2,1fr); }
+    .form-grid{ grid-template-columns:1fr; }
+    .item-row{ grid-template-columns:1fr 50px auto 24px; }
+    .schedule-row{ grid-template-columns:1fr; gap:4px; }
+    .block-card{ grid-template-columns:1fr; gap:10px; }
+  }
+
+  /* ================= Print ================= */
+  @media print{
+    @page{ size:letter portrait; margin:0.35in; }
+    html, body{ background:#fff !important; color:#111 !important; }
+    body{ font-size:8pt; }
+    .sticky-top, footer, .no-print, .block-add-row, .remove-item-btn{ display:none !important; }
+    .tab-panel{ display:none !important; }
+    #tab-summary{ display:block !important; }
+    .app-shell{ max-width:100%; padding:0; margin:0; }
+    .card, .stat-card{ box-shadow:none !important; border:none !important; background:#fff !important; margin:0 !important; padding:0 !important; }
+    .print-plan-card{ break-inside:auto; }
+    .print-plan-card .eyebrow,
+    .print-plan-card h2,
+    .print-plan-card .card-hint,
+    .print-plan-card .card-header-row{ display:none !important; }
+    .stat-value, .rate-col-value, h1, h2, h3, h4, td, th{ color:#111 !important; }
+    .print-only{ display:block !important; margin:0 0 6px; }
+    .print-only h1{ font-size:12pt; margin:0 0 2px; color:#111 !important; }
+    .print-only p{ font-size:8pt; margin:0; color:#333 !important; }
+    .table-scroll{ overflow:visible !important; margin:0 !important; border:1px solid #bbb !important; border-radius:0 !important; }
+    .plan-table{ table-layout:fixed; width:100%; font-size:7pt; }
+    .plan-table th{
+      background:#eee !important; color:#111 !important; font-size:6.5pt; letter-spacing:.02em;
+      padding:2px 3px !important; border-color:#bbb !important;
+    }
+    .plan-table td{
+      padding:1px 3px !important; border-color:#ccc !important; line-height:1.2;
+      vertical-align:top; color:#111 !important;
+    }
+    .plan-table .seg-cell{ width:15%; white-space:nowrap; }
+    .plan-table .seg-name{ font-weight:700; font-size:7pt; }
+    .plan-table .seg-range{
+      display:inline; margin:0 0 0 .35em; font-size:6.5pt; color:#444 !important;
+    }
+    .plan-table .items-cell{ width:26%; font-size:6.5pt; word-break:break-word; }
+    .plan-table .num{ width:7.5%; font-size:7pt; }
+    .plan-table .rate-cell{ width:14%; font-size:6.5pt; white-space:nowrap; color:#222 !important; }
+    .plan-table tfoot td{ background:#f3f3f3 !important; font-size:7pt; padding:2px 3px !important; }
+    .print-servings{ margin-top:8px !important; }
+    .print-servings h2{
+      font-size:9pt; margin:0 0 4px; color:#111 !important;
+      display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+    }
+    .print-servings h2 span{ font-size:7.5pt; font-weight:600; color:#444 !important; font-family:var(--font-mono); }
+    .print-servings .servings-list{
+      border:1px solid #bbb !important; border-radius:0 !important; margin:0 !important;
+    }
+    .print-servings .servings-row{
+      padding:1px 4px !important; border-color:#ccc !important; font-size:7pt; grid-template-columns:48px 1fr; gap:8px;
+    }
+    .print-servings .servings-qty{ color:#111 !important; font-size:7pt; }
+    .print-servings .servings-name{ color:#111 !important; font-size:7pt; }
+    .print-servings .servings-breakdown{ color:#444 !important; font-weight:500; }
+    .print-servings .servings-serving{ display:none; }
+    .print-servings .servings-empty{ padding:4px; font-size:7pt; color:#444 !important; }
+    .print-paces{ display:block !important; margin:8px 0 !important; }
+    .print-paces h2{
+      font-size:9pt; margin:0 0 4px; color:#111 !important;
+    }
+    .print-paces-table{ border:1px solid #bbb; border-collapse:collapse; width:100%; font-size:7pt; }
+    .print-paces-table th, .print-paces-table td{
+      border:1px solid #ccc; padding:2px 4px; color:#111 !important; text-align:left; vertical-align:top;
+    }
+    .print-paces-table th{ background:#eee !important; font-size:6.5pt; }
+    .gauge, .badge, .stat-icon{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sticky-top">
+  <div class="sticky-inner">
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">IM</span>
+        <div class="brand-text">
+          <h1>Race Day Fueling Planner</h1>
+          <p class="tagline" id="planNameDisplay">My Race Plan</p>
+        </div>
+      </div>
+      <div class="header-controls no-print">
+        <input type="text" id="planNameInput" class="plan-name-input" value="My Race Plan" aria-label="Plan name" placeholder="Plan name, e.g. Hot Day Plan" maxlength="60">
+        <div class="unit-toggle" role="group" aria-label="Units">
+          <button type="button" class="unit-btn active" data-unit="metric">Metric</button>
+          <button type="button" class="unit-btn" data-unit="imperial">Imperial</button>
+        </div>
+        <button type="button" id="savePlanBtn" class="btn btn-primary">Save plan</button>
+        <button type="button" id="savedPlansBtn" class="btn btn-ghost">Saved plans</button>
+        <button type="button" id="exportBtn" class="btn btn-ghost">Export JSON</button>
+        <button type="button" id="importBtn" class="btn btn-ghost">Import JSON</button>
+        <input type="file" id="importFileInput" accept="application/json" hidden>
+        <button type="button" id="printBtn" class="btn btn-accent">Print / save as PDF</button>
+      </div>
+    </header>
+
+    <div class="live-bar no-print" id="liveBar" aria-live="polite"></div>
+
+    <nav class="tabs no-print" role="tablist" aria-label="Sections">
+      <button type="button" class="tab-btn active" data-tab="setup" id="tabbtn-setup" role="tab" aria-selected="true">1. Race setup</button>
+      <button type="button" class="tab-btn" data-tab="paces" id="tabbtn-paces" role="tab" aria-selected="false">2. Paces</button>
+      <button type="button" class="tab-btn" data-tab="products" id="tabbtn-products" role="tab" aria-selected="false">3. Product library</button>
+      <button type="button" class="tab-btn" data-tab="log" id="tabbtn-log" role="tab" aria-selected="false">4. Nutrition log</button>
+      <button type="button" class="tab-btn" data-tab="summary" id="tabbtn-summary" role="tab" aria-selected="false">5. Summary</button>
+    </nav>
+  </div>
+</div>
+
+<div class="app-shell">
+  <main>
+
+    <!-- ============ TAB: SETUP ============ -->
+    <section id="tab-setup" class="tab-panel active" role="tabpanel" aria-labelledby="tabbtn-setup">
+      <div class="panel-grid">
+        <div class="card">
+          <span class="eyebrow">Segment times</span>
+          <h2 style="margin-top:8px;">Estimated segment times</h2>
+          <p class="card-hint">Set wake-up and race start to build the morning schedule, then enter goal times for each segment.</p>
+          <div class="time-grid">
+            <div class="time-row">
+              <label class="seg-label"><span class="seg-dot" style="background:var(--accent);"></span>Wake-up</label>
+              <div class="hm-inputs">
+                <input type="time" id="wake-time" class="start-time-input" aria-label="Wake-up time">
+              </div>
+            </div>
+            <div class="time-row">
+              <label class="seg-label"><span class="seg-dot" style="background:var(--accent);"></span>Race / swim start</label>
+              <div class="hm-inputs">
+                <input type="time" id="race-start-time" class="start-time-input" aria-label="Race / swim start time">
+              </div>
+            </div>
+            <div class="time-row">
+              <label class="seg-label seg-swim"><span class="seg-dot"></span>Swim</label>
+              <div class="hm-inputs">
+                <input type="number" inputmode="numeric" id="time-swim-h" min="0" max="12" step="1" class="time-input" data-seg="swim" data-part="h" aria-label="Swim hours"><span>h</span>
+                <input type="number" inputmode="numeric" id="time-swim-m" min="0" max="59" step="1" class="time-input" data-seg="swim" data-part="m" aria-label="Swim minutes"><span>m</span>
+              </div>
+            </div>
+            <div class="time-row">
+              <label class="seg-label seg-t"><span class="seg-dot"></span>T1</label>
+              <div class="hm-inputs">
+                <input type="number" inputmode="numeric" id="time-t1-h" min="0" max="3" step="1" class="time-input" data-seg="t1" data-part="h" aria-label="T1 hours"><span>h</span>
+                <input type="number" inputmode="numeric" id="time-t1-m" min="0" max="59" step="1" class="time-input" data-seg="t1" data-part="m" aria-label="T1 minutes"><span>m</span>
+              </div>
+            </div>
+            <div class="time-row">
+              <label class="seg-label seg-bike"><span class="seg-dot"></span>Bike</label>
+              <div class="hm-inputs">
+                <input type="number" inputmode="numeric" id="time-bike-h" min="0" max="20" step="1" class="time-input" data-seg="bike" data-part="h" aria-label="Bike hours"><span>h</span>
+                <input type="number" inputmode="numeric" id="time-bike-m" min="0" max="59" step="1" class="time-input" data-seg="bike" data-part="m" aria-label="Bike minutes"><span>m</span>
+              </div>
+            </div>
+            <div class="time-row">
+              <label class="seg-label seg-t"><span class="seg-dot"></span>T2</label>
+              <div class="hm-inputs">
+                <input type="number" inputmode="numeric" id="time-t2-h" min="0" max="3" step="1" class="time-input" data-seg="t2" data-part="h" aria-label="T2 hours"><span>h</span>
+                <input type="number" inputmode="numeric" id="time-t2-m" min="0" max="59" step="1" class="time-input" data-seg="t2" data-part="m" aria-label="T2 minutes"><span>m</span>
+              </div>
+            </div>
+            <div class="time-row">
+              <label class="seg-label seg-run"><span class="seg-dot"></span>Run</label>
+              <div class="hm-inputs">
+                <input type="number" inputmode="numeric" id="time-run-h" min="0" max="20" step="1" class="time-input" data-seg="run" data-part="h" aria-label="Run hours"><span>h</span>
+                <input type="number" inputmode="numeric" id="time-run-m" min="0" max="59" step="1" class="time-input" data-seg="run" data-part="m" aria-label="Run minutes"><span>m</span>
+              </div>
+            </div>
+          </div>
+          <p class="card-hint" style="margin-top:10px;" id="morningWindowHint">Morning fueling rows are created automatically from wake-up to race start.</p>
+          <div class="timeline-wrap">
+            <div class="timeline-bar" id="raceTimelineBar"></div>
+            <div class="timeline-total" id="raceTimelineTotal"></div>
+            <div class="schedule-list" id="raceScheduleList"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="eyebrow">Fueling targets</span>
+          <h2 style="margin-top:8px;">Hourly target ranges</h2>
+          <p class="card-hint">Baseline sports-science ranges are pre-filled. Adjust to match your sweat rate, gut training, and race-day heat.</p>
+          <div class="target-grid">
+            <div class="target-row">
+              <label>Carbs (g/hr)</label>
+              <div class="minmax-inputs">
+                <input type="number" inputmode="numeric" id="target-carbs-min" class="target-input" data-metric="carbs" data-bound="min" min="0" step="5" aria-label="Carbs minimum">
+                <span>–</span>
+                <input type="number" inputmode="numeric" id="target-carbs-max" class="target-input" data-metric="carbs" data-bound="max" min="0" step="5" aria-label="Carbs maximum">
+              </div>
+              <span class="target-note">Baseline 60–90 g/hr; up to 120 g/hr for gut-trained athletes</span>
+            </div>
+            <div class="target-row">
+              <label>Sodium (mg/hr)</label>
+              <div class="minmax-inputs">
+                <input type="number" inputmode="numeric" id="target-sodium-min" class="target-input" data-metric="sodium" data-bound="min" min="0" step="50" aria-label="Sodium minimum">
+                <span>–</span>
+                <input type="number" inputmode="numeric" id="target-sodium-max" class="target-input" data-metric="sodium" data-bound="max" min="0" step="50" aria-label="Sodium maximum">
+              </div>
+              <span class="target-note">Higher end for heavy/salty sweaters and hot, humid conditions</span>
+            </div>
+            <div class="target-row">
+              <label>Fluids (<span id="fluidUnitLabelTarget">ml</span>/hr)</label>
+              <div class="minmax-inputs">
+                <input type="number" inputmode="numeric" id="target-fluids-min" class="target-input" data-metric="fluids" data-bound="min" min="0" step="10" aria-label="Fluids minimum">
+                <span>–</span>
+                <input type="number" inputmode="numeric" id="target-fluids-max" class="target-input" data-metric="fluids" data-bound="max" min="0" step="10" aria-label="Fluids maximum">
+              </div>
+              <span class="target-note">Adjust for heat, humidity, and your own sweat rate</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card tip-card">
+        <h3>Nutritionist's notes</h3>
+        <ul>
+          <li>These are general endurance-sports starting points, not individual medical advice — dial them in during training, never for the first time on race day.</li>
+          <li>Carb tolerance is trainable. If 90g+/hr is new to you, build up to it in long training sessions first.</li>
+          <li>Sodium needs vary a lot between individuals and conditions — a sweat-sodium test gives a far more precise number than any generic range.</li>
+          <li>Let fluid intake track thirst and urine colour on the day — overdrinking against a fixed target can be as risky as underdrinking.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ TAB: PACES ============ -->
+    <section id="tab-paces" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-paces">
+      <div class="card" style="margin-bottom:18px;">
+        <span class="eyebrow">Race effort</span>
+        <h2 style="margin-top:8px;">Paces &amp; heart-rate zones</h2>
+        <p class="card-hint">Enter a target speed range for each discipline. Approximate finish times are calculated from the course distance, and you can push those estimates into Race setup.</p>
+        <div class="race-format-toggle" role="group" aria-label="Race distance">
+          <button type="button" class="race-format-btn active" data-format="full" id="raceFormatFull">Full (140.6)</button>
+          <button type="button" class="race-format-btn" data-format="half" id="raceFormatHalf">Half (70.3)</button>
+        </div>
+        <p class="card-hint" id="raceDistanceHint" style="margin-top:10px;"></p>
+        <div class="pace-apply-row">
+          <button type="button" id="applyPaceEstimatesBtn" class="btn btn-primary">Apply speed estimates to race times</button>
+          <span class="card-hint" style="margin:0;" id="paceApplyHint">Uses the mid-range speed for each discipline.</span>
+        </div>
+      </div>
+      <div class="paces-grid">
+        <div class="card pace-card swim">
+          <span class="eyebrow swim">Swim</span>
+          <h2 style="margin-top:8px;">Swim targets</h2>
+          <div class="pace-fields">
+            <div class="pace-field">
+              <label for="pace-swim-zone">HR zone</label>
+              <input type="text" id="pace-swim-zone" class="pace-input" data-disc="swim" data-field="zone" maxlength="40" placeholder="e.g. Z2 / aerobic" autocomplete="off">
+            </div>
+            <div class="pace-field">
+              <label>Heart rate (bpm)</label>
+              <div class="pace-hr-row">
+                <input type="number" inputmode="numeric" id="pace-swim-hrMin" class="pace-input mono" data-disc="swim" data-field="hrMin" min="0" max="250" step="1" placeholder="Min" aria-label="Swim HR minimum">
+                <span>–</span>
+                <input type="number" inputmode="numeric" id="pace-swim-hrMax" class="pace-input mono" data-disc="swim" data-field="hrMax" min="0" max="250" step="1" placeholder="Max" aria-label="Swim HR maximum">
+              </div>
+            </div>
+            <div class="pace-field">
+              <label id="pace-swim-speed-label">Speed range</label>
+              <div class="pace-hr-row">
+                <input type="number" inputmode="decimal" id="pace-swim-speedMin" class="pace-input mono" data-disc="swim" data-field="speedMin" min="0" step="0.1" placeholder="Slow" aria-label="Swim slow speed">
+                <span>–</span>
+                <input type="number" inputmode="decimal" id="pace-swim-speedMax" class="pace-input mono" data-disc="swim" data-field="speedMax" min="0" step="0.1" placeholder="Fast" aria-label="Swim fast speed">
+              </div>
+              <span class="pace-hint" id="pace-swim-speed-hint"></span>
+            </div>
+            <div class="pace-estimate" id="pace-swim-estimate">Enter a speed range to estimate swim time.</div>
+            <div class="pace-field">
+              <label for="pace-swim-notes">Notes</label>
+              <textarea id="pace-swim-notes" class="pace-input" data-disc="swim" data-field="notes" maxlength="240" placeholder="Sighting, draft, start strategy…"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="card pace-card bike">
+          <span class="eyebrow bike">Bike</span>
+          <h2 style="margin-top:8px;">Bike targets</h2>
+          <div class="pace-fields">
+            <div class="pace-field">
+              <label for="pace-bike-zone">HR zone</label>
+              <input type="text" id="pace-bike-zone" class="pace-input" data-disc="bike" data-field="zone" maxlength="40" placeholder="e.g. Z2–Z3" autocomplete="off">
+            </div>
+            <div class="pace-field">
+              <label>Heart rate (bpm)</label>
+              <div class="pace-hr-row">
+                <input type="number" inputmode="numeric" id="pace-bike-hrMin" class="pace-input mono" data-disc="bike" data-field="hrMin" min="0" max="250" step="1" placeholder="Min" aria-label="Bike HR minimum">
+                <span>–</span>
+                <input type="number" inputmode="numeric" id="pace-bike-hrMax" class="pace-input mono" data-disc="bike" data-field="hrMax" min="0" max="250" step="1" placeholder="Max" aria-label="Bike HR maximum">
+              </div>
+            </div>
+            <div class="pace-field">
+              <label id="pace-bike-speed-label">Speed range</label>
+              <div class="pace-hr-row">
+                <input type="number" inputmode="decimal" id="pace-bike-speedMin" class="pace-input mono" data-disc="bike" data-field="speedMin" min="0" step="0.1" placeholder="Slow" aria-label="Bike slow speed">
+                <span>–</span>
+                <input type="number" inputmode="decimal" id="pace-bike-speedMax" class="pace-input mono" data-disc="bike" data-field="speedMax" min="0" step="0.1" placeholder="Fast" aria-label="Bike fast speed">
+              </div>
+              <span class="pace-hint" id="pace-bike-speed-hint"></span>
+            </div>
+            <div class="pace-estimate" id="pace-bike-estimate">Enter a speed range to estimate bike time.</div>
+            <div class="pace-field">
+              <label for="pace-bike-notes">Notes</label>
+              <textarea id="pace-bike-notes" class="pace-input" data-disc="bike" data-field="notes" maxlength="240" placeholder="Stay aero, nutrition reminders, hills…"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="card pace-card run">
+          <span class="eyebrow run">Run</span>
+          <h2 style="margin-top:8px;">Run targets</h2>
+          <div class="pace-fields">
+            <div class="pace-field">
+              <label for="pace-run-zone">HR zone</label>
+              <input type="text" id="pace-run-zone" class="pace-input" data-disc="run" data-field="zone" maxlength="40" placeholder="e.g. Z2" autocomplete="off">
+            </div>
+            <div class="pace-field">
+              <label>Heart rate (bpm)</label>
+              <div class="pace-hr-row">
+                <input type="number" inputmode="numeric" id="pace-run-hrMin" class="pace-input mono" data-disc="run" data-field="hrMin" min="0" max="250" step="1" placeholder="Min" aria-label="Run HR minimum">
+                <span>–</span>
+                <input type="number" inputmode="numeric" id="pace-run-hrMax" class="pace-input mono" data-disc="run" data-field="hrMax" min="0" max="250" step="1" placeholder="Max" aria-label="Run HR maximum">
+              </div>
+            </div>
+            <div class="pace-field">
+              <label id="pace-run-speed-label">Speed range</label>
+              <div class="pace-hr-row">
+                <input type="number" inputmode="decimal" id="pace-run-speedMin" class="pace-input mono" data-disc="run" data-field="speedMin" min="0" step="0.1" placeholder="Slow" aria-label="Run slow speed">
+                <span>–</span>
+                <input type="number" inputmode="decimal" id="pace-run-speedMax" class="pace-input mono" data-disc="run" data-field="speedMax" min="0" step="0.1" placeholder="Fast" aria-label="Run fast speed">
+              </div>
+              <span class="pace-hint" id="pace-run-speed-hint"></span>
+            </div>
+            <div class="pace-estimate" id="pace-run-estimate">Enter a speed range to estimate run time.</div>
+            <div class="pace-field">
+              <label for="pace-run-notes">Notes</label>
+              <textarea id="pace-run-notes" class="pace-input" data-disc="run" data-field="notes" maxlength="240" placeholder="Walk aids, negative split, heat…"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TAB: PRODUCTS ============ -->
+    <section id="tab-products" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-products">
+      <div class="card">
+        <div class="card-header-row">
+          <div>
+            <span class="eyebrow">Fuel library</span>
+            <h2 style="margin-top:8px;">Product library</h2>
+            <p class="card-hint">Define the fuel you'll actually carry and grab on course. Values are per single serving — starter numbers are estimates, so check your own packaging and adjust.</p>
+          </div>
+          <div class="card-header-actions">
+            <button type="button" id="resetProductsBtn" class="btn btn-ghost btn-small">Reset to defaults</button>
+            <button type="button" id="addProductBtn" class="btn btn-primary">+ Add product</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Serving</th>
+                <th class="num">Carbs (g)</th>
+                <th class="num">Sodium (mg)</th>
+                <th class="num" id="fluidsColHeader">Fluids (ml)</th>
+                <th class="num">Caffeine (mg)</th>
+                <th class="num">Calories</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="productTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TAB: LOG ============ -->
+    <section id="tab-log" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-log">
+      <details class="card servings-summary" id="servingsSummary" open>
+        <summary>
+          <span class="servings-summary-title">Total servings</span>
+          <span class="servings-summary-stat" id="servingsSummaryStat"></span>
+        </summary>
+        <p class="card-hint">Combined quantity of each product across your full day plan — useful as a packing / shopping list.</p>
+        <div class="servings-list" id="servingsSummaryList"></div>
+      </details>
+
+      <h2 class="segment-heading eyebrow morning" id="morningSegHeading">Morning <span class="segment-heading-stat" id="morningSegHeadingStat"></span></h2>
+      <div class="block-rows" id="logMorningBlocks"></div>
+
+      <h2 class="segment-heading eyebrow swim" id="swimSegHeading">Swim <span class="segment-heading-stat" id="swimSegHeadingStat"></span></h2>
+      <div class="block-rows" id="logSwimBlocks"></div>
+
+      <h2 class="segment-heading eyebrow t" id="t1SegHeading">T1 <span class="segment-heading-stat" id="t1SegHeadingStat"></span></h2>
+      <div class="block-rows" id="logPreRace"></div>
+
+      <h2 class="segment-heading eyebrow bike" id="bikeSegHeading">Bike <span class="segment-heading-stat" id="bikeSegHeadingStat"></span></h2>
+      <div class="block-rows" id="logBikeBlocks"></div>
+
+      <h2 class="segment-heading eyebrow t" id="t2SegHeading">T2 <span class="segment-heading-stat" id="t2SegHeadingStat"></span></h2>
+      <div class="block-rows" id="logT2"></div>
+
+      <h2 class="segment-heading eyebrow run" id="runSegHeading">Run <span class="segment-heading-stat" id="runSegHeadingStat"></span></h2>
+      <div class="block-rows" id="logRunBlocks"></div>
+    </section>
+
+    <!-- ============ TAB: SUMMARY ============ -->
+    <section id="tab-summary" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-summary">
+      <div class="print-only">
+        <h1 id="printTitle">Race Day Fueling Plan</h1>
+        <p id="printSubtitle"></p>
+      </div>
+
+      <div id="summaryTotals" class="stat-cards no-print"></div>
+
+      <div class="card no-print">
+        <span class="eyebrow">Race day clock</span>
+        <h2 style="margin-top:8px;">Segment schedule</h2>
+        <p class="card-hint">Projected clock times from your race start and segment goal times.</p>
+        <div class="schedule-list" id="summaryScheduleList"></div>
+      </div>
+
+      <div class="card no-print">
+        <span class="eyebrow">By discipline</span>
+        <h2 style="margin-top:8px;">Nutrients per discipline</h2>
+        <p class="card-hint">Totals for each segment, plus average intake rate for timed blocks.</p>
+        <div class="table-scroll">
+          <table class="discipline-table" id="disciplineTable"></table>
+        </div>
+      </div>
+
+      <div class="card no-print">
+        <span class="eyebrow">Rate check</span>
+        <h2 style="margin-top:8px;">Hourly rates by discipline</h2>
+        <div id="summaryRates" class="rate-compare"></div>
+      </div>
+
+      <div class="card no-print">
+        <span class="eyebrow">Stimulant tracking</span>
+        <h2 style="margin-top:8px;">Caffeine timeline</h2>
+        <div id="caffeineTimeline"></div>
+      </div>
+
+      <div class="card print-plan-card">
+        <div class="card-header-row">
+          <div>
+            <span class="eyebrow">Full plan</span>
+            <h2 style="margin-top:8px;">Printable summary — per hour</h2>
+          </div>
+          <button type="button" id="printBtn2" class="btn btn-ghost btn-small no-print">Print / save as PDF</button>
+        </div>
+        <div class="table-scroll">
+          <table class="plan-table" id="planTable"></table>
+        </div>
+      </div>
+
+      <div class="print-only print-servings">
+        <h2>Total servings <span id="printServingsStat"></span></h2>
+        <div class="servings-list" id="printServingsList"></div>
+      </div>
+
+      <div class="print-only print-paces">
+        <h2>Paces &amp; heart-rate zones</h2>
+        <table class="print-paces-table" id="printPacesTable"></table>
+      </div>
+
+      <p class="disclaimer no-print">This calculator is a personal planning tool for training and race preparation — it is not medical advice. Sweat rate, gut tolerance, and sodium needs differ a lot between individuals. Test your plan extensively in training, and talk to a sports dietitian or doctor for individualized guidance, especially if you have any medical conditions.</p>
+    </section>
+
+  </main>
+
+  <footer class="no-print">
+    <p>Drafts auto-save in this browser. Use <strong>Save plan</strong> for named snapshots you can reload later. Nothing is uploaded. Not medical advice.</p>
+  </footer>
+</div>
+
+<dialog id="productModal">
+  <form id="productForm" novalidate>
+    <h3 id="productModalTitle">Add product</h3>
+    <div class="form-grid">
+      <label class="form-field full">Name
+        <input type="text" id="pf-name" required maxlength="60" placeholder="e.g. Maurten Gel 100">
+      </label>
+      <label class="form-field full">Serving unit
+        <input type="text" id="pf-serving" required maxlength="40" placeholder="e.g. 1 gel (40g)">
+      </label>
+      <label class="form-field">Carbs (g)
+        <input type="number" inputmode="decimal" id="pf-carbs" min="0" step="0.1" value="0" required>
+      </label>
+      <label class="form-field">Sodium (mg)
+        <input type="number" inputmode="numeric" id="pf-sodium" min="0" step="1" value="0" required>
+      </label>
+      <label class="form-field">Fluids (<span id="pf-fluids-unit">ml</span>)
+        <input type="number" inputmode="numeric" id="pf-fluids" min="0" step="1" value="0" required>
+      </label>
+      <label class="form-field">Caffeine (mg)
+        <input type="number" inputmode="numeric" id="pf-caffeine" min="0" step="1" value="0" required>
+      </label>
+      <label class="form-field full">Calories (kcal)
+        <input type="number" inputmode="numeric" id="pf-calories" min="0" step="1" value="0" required>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" id="modalCancelBtn" class="btn btn-ghost">Cancel</button>
+      <button type="submit" id="modalSaveBtn" class="btn btn-primary">Save product</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="savedPlansModal">
+  <h3>Saved plans</h3>
+  <p class="modal-hint">Store named snapshots of your inputs, nutrition log, and product library in this browser. Draft changes still auto-save as you edit.</p>
+  <div class="save-row">
+    <label class="form-field">Save as
+      <input type="text" id="saveAsNameInput" maxlength="60" placeholder="e.g. IM Texas — hot day">
+    </label>
+    <button type="button" id="saveAsConfirmBtn" class="btn btn-primary">Save</button>
+  </div>
+  <div id="savedPlansList" class="saved-list"></div>
+  <div class="modal-actions">
+    <button type="button" id="savedPlansCloseBtn" class="btn btn-ghost">Close</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+/* =========================================================================
+   CONSTANTS
+   ========================================================================= */
+var ML_PER_OZ = 29.5735;
+var STORAGE_KEYS = {
+  products: 'irnFuel.products.v1',
+  planState: 'irnFuel.planState.v1',
+  savedPlans: 'irnFuel.savedPlans.v1',
+  activeSavedId: 'irnFuel.activeSavedId.v1'
+};
+
+function mkProduct(name, servingLabel, carbs, sodium, fluids, caffeine, calories, id) {
+  return {
+    id: id || uid(),
+    name: name, servingLabel: servingLabel,
+    carbs: +carbs, sodium: +sodium, fluids: +fluids, caffeine: +caffeine, calories: +calories
+  };
+}
+
+function uid() {
+  return 'p_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+var DEFAULT_PRODUCTS = [
+  mkProduct('Maurten Gel 100', '1 gel (40g)', 25, 20, 0, 0, 100),
+  mkProduct('Maurten Gel 100 CAF 100', '1 gel (40g)', 25, 20, 0, 100, 100),
+  mkProduct('Precision Hydration 1500', '1 sachet in 500ml bottle', 3, 750, 500, 0, 15),
+  mkProduct('SaltStick Caps', '1 capsule', 0, 215, 0, 0, 0),
+  mkProduct('Energy Chews', '1 serving (3 chews)', 24, 50, 0, 0, 90),
+  mkProduct('Water — Bottle', '1 bottle (500ml)', 0, 0, 500, 0, 0),
+  mkProduct('Water — Aid Station Cup', '1 cup (200ml)', 0, 0, 200, 0, 0),
+  mkProduct('Aid Station Gatorade', '1 cup (200ml)', 14, 150, 200, 0, 60),
+  mkProduct('Cola — Aid Station (flat)', '1 cup (150ml)', 16, 15, 150, 15, 60),
+  mkProduct('Banana — Aid Station', '1 half banana', 14, 1, 0, 0, 55)
+];
+
+/* =========================================================================
+   STATE
+   ========================================================================= */
+var products = [];
+var state = null;
+var activeSavedId = null;
+
+function defaultPaceDiscipline() {
+  return { zone: '', hrMin: '', hrMax: '', speedMin: '', speedMax: '', notes: '' };
+}
+
+function defaultPaces() {
+  return {
+    swim: defaultPaceDiscipline(),
+    bike: defaultPaceDiscipline(),
+    run: defaultPaceDiscipline()
+  };
+}
+
+function normalizeOptionalNumber(val, min, max, decimals) {
+  if (val === '' || val == null || (typeof val === 'string' && !String(val).trim())) return '';
+  var n = Number(val);
+  if (!isFinite(n) || n < 0) return '';
+  if (decimals != null) {
+    var f = Math.pow(10, decimals);
+    n = Math.round(n * f) / f;
+  } else {
+    n = Math.floor(n);
+  }
+  if (min != null) n = Math.max(min, n);
+  if (max != null) n = Math.min(max, n);
+  return n;
+}
+
+function normalizePaceDiscipline(src) {
+  var d = defaultPaceDiscipline();
+  if (!src || typeof src !== 'object') return d;
+  d.zone = String(src.zone != null ? src.zone : '').slice(0, 40);
+  d.notes = String(src.notes != null ? src.notes : '').slice(0, 240);
+  d.hrMin = normalizeOptionalNumber(src.hrMin, 0, 250, null);
+  d.hrMax = normalizeOptionalNumber(src.hrMax, 0, 250, null);
+  /* Speeds are always stored in km/h */
+  d.speedMin = normalizeOptionalNumber(src.speedMin, 0, 100, 2);
+  d.speedMax = normalizeOptionalNumber(src.speedMax, 0, 100, 2);
+  return d;
+}
+
+function normalizePaces(src) {
+  var d = defaultPaces();
+  if (!src || typeof src !== 'object') return d;
+  return {
+    swim: normalizePaceDiscipline(src.swim),
+    bike: normalizePaceDiscipline(src.bike),
+    run: normalizePaceDiscipline(src.run)
+  };
+}
+
+function normalizeRaceFormat(fmt) {
+  return fmt === 'half' ? 'half' : 'full';
+}
+
+function defaultState() {
+  return {
+    planName: 'My Race Plan',
+    units: 'metric',
+    raceFormat: 'full',
+    wakeTime: { h: 4, m: 0 },
+    startTime: { h: 6, m: 0 },
+    raceTimes: {
+      swim: { h: 1, m: 10 },
+      t1:   { h: 0, m: 8 },
+      bike: { h: 5, m: 30 },
+      t2:   { h: 0, m: 5 },
+      run:  { h: 4, m: 0 }
+    },
+    targets: {
+      carbs:  { min: 60,  max: 90 },
+      sodium: { min: 500, max: 1200 },
+      fluids: { min: 500, max: 1000 } /* always stored internally in ml */
+    },
+    paces: defaultPaces(),
+    log: {
+      morning: [],
+      swim: [],
+      preRace: { items: [] },
+      bike: [],
+      t2: { items: [] },
+      run: []
+    }
+  };
+}
+
+/* =========================================================================
+   PERSISTENCE
+   ========================================================================= */
+var storageWarningShown = false;
+
+function loadProducts() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEYS.products);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length) return parsed;
+    }
+  } catch (e) { console.warn('Failed to load products from storage', e); }
+  return DEFAULT_PRODUCTS.map(function (p) { return Object.assign({}, p); });
+}
+
+function saveProducts() {
+  try {
+    localStorage.setItem(STORAGE_KEYS.products, JSON.stringify(products));
+  } catch (e) {
+    console.warn('Failed to save products', e);
+    if (!storageWarningShown) { storageWarningShown = true; toast('Could not save to local storage — your browser may be blocking it.', 'error'); }
+  }
+}
+
+function loadPlanState() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEYS.planState);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && parsed.raceTimes && parsed.targets && parsed.log) {
+        var d = defaultState();
+        parsed.raceTimes = Object.assign(d.raceTimes, parsed.raceTimes);
+        parsed.targets = {
+          carbs: Object.assign({}, d.targets.carbs, parsed.targets.carbs || {}),
+          sodium: Object.assign({}, d.targets.sodium, parsed.targets.sodium || {}),
+          fluids: Object.assign({}, d.targets.fluids, parsed.targets.fluids || {})
+        };
+        parsed.startTime = normalizeStartTime(parsed.startTime || d.startTime);
+        if (!parsed.wakeTime) {
+          /* Migrate old morningHours count into an inferred wake-up time */
+          var legacyMorningHrs = (typeof parsed.morningHours === 'number' && isFinite(parsed.morningHours))
+            ? Math.max(0, parsed.morningHours) : 3;
+          var gunMin = parsed.startTime.h * 60 + parsed.startTime.m;
+          var wakeMin = gunMin - Math.round(legacyMorningHrs * 60);
+          while (wakeMin < 0) wakeMin += 24 * 60;
+          parsed.wakeTime = { h: Math.floor(wakeMin / 60) % 24, m: wakeMin % 60 };
+        }
+        parsed.wakeTime = normalizeStartTime(parsed.wakeTime);
+        delete parsed.morningHours;
+        if (!parsed.log.preRace) parsed.log.preRace = { items: [] };
+        if (!parsed.log.t2) parsed.log.t2 = { items: [] };
+        if (!Array.isArray(parsed.log.bike)) parsed.log.bike = [];
+        if (!Array.isArray(parsed.log.run)) parsed.log.run = [];
+        if (!Array.isArray(parsed.log.swim)) parsed.log.swim = [];
+        if (!Array.isArray(parsed.log.morning)) {
+          /* Migrate: older plans had a single preRace blob — keep those items on T1 and seed empty morning hours */
+          parsed.log.morning = [];
+        }
+        if (!parsed.units) parsed.units = 'metric';
+        if (!parsed.planName) parsed.planName = 'My Race Plan';
+        parsed.raceFormat = normalizeRaceFormat(parsed.raceFormat);
+        parsed.paces = normalizePaces(parsed.paces);
+        return parsed;
+      }
+    }
+  } catch (e) { console.warn('Failed to load plan state', e); }
+  return defaultState();
+}
+
+var saveStateTimer = null;
+function saveStateDebounced() {
+  clearTimeout(saveStateTimer);
+  saveStateTimer = setTimeout(function () {
+    try { localStorage.setItem(STORAGE_KEYS.planState, JSON.stringify(state)); }
+    catch (e) {
+      console.warn('Failed to save plan state', e);
+      if (!storageWarningShown) { storageWarningShown = true; toast('Could not save to local storage — your browser may be blocking it.', 'error'); }
+    }
+  }, 300);
+}
+
+/* =========================================================================
+   CALCULATIONS
+   ========================================================================= */
+function timeToHours(t) { return (Number(t.h) || 0) + (Number(t.m) || 0) / 60; }
+
+function normalizeStartTime(st) {
+  return {
+    h: Math.max(0, Math.min(23, Math.floor(Number(st && st.h) || 0))),
+    m: Math.max(0, Math.min(59, Math.floor(Number(st && st.m) || 0)))
+  };
+}
+
+function timeToMinutesOfDay(t) {
+  t = normalizeStartTime(t);
+  return t.h * 60 + t.m;
+}
+
+function fmtTimeInputValue(t) {
+  t = normalizeStartTime(t);
+  return String(t.h).padStart(2, '0') + ':' + String(t.m).padStart(2, '0');
+}
+
+function parseTimeInputValue(value, fallback) {
+  var parts = String(value || '').split(':');
+  if (parts.length < 2) return normalizeStartTime(fallback);
+  return normalizeStartTime({ h: Number(parts[0]) || 0, m: Number(parts[1]) || 0 });
+}
+
+/** Decimal hours from wake-up to race start (supports overnight wake). Capped at 12h. */
+function getMorningDurationHours() {
+  var wake = timeToMinutesOfDay(state.wakeTime);
+  var gun = timeToMinutesOfDay(state.startTime);
+  if (gun === wake) return 0;
+  if (gun < wake) {
+    var overnightMins = (gun + 24 * 60) - wake;
+    /* If the overnight gap is huge, wake is probably set after start by mistake */
+    if (overnightMins > 12 * 60) return 0;
+    return overnightMins / 60;
+  }
+  return Math.min(12, (gun - wake) / 60);
+}
+
+function startMinutesFromMidnight() {
+  return timeToMinutesOfDay(state.startTime);
+}
+
+function fmtClockFromMinutes(absMinutes) {
+  var dayOffset = Math.floor(absMinutes / (24 * 60));
+  var minsInDay = absMinutes - dayOffset * 24 * 60;
+  if (minsInDay < 0) { minsInDay += 24 * 60; dayOffset -= 1; }
+  var h = Math.floor(minsInDay / 60);
+  var m = Math.round(minsInDay % 60);
+  if (m === 60) { m = 0; h += 1; }
+  if (h >= 24) { h -= 24; dayOffset += 1; }
+  var clock = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+  if (dayOffset > 0) clock += ' (+' + dayOffset + 'd)';
+  return clock;
+}
+
+function clockAtOffsetHours(offsetHours) {
+  return fmtClockFromMinutes(startMinutesFromMidnight() + Math.round(Number(offsetHours) * 60));
+}
+
+function clockRangeFromOffsets(startOffHours, endOffHours) {
+  return clockAtOffsetHours(startOffHours) + '–' + clockAtOffsetHours(endOffHours);
+}
+
+/** Offsets in hours from gun start for each race milestone / hourly block */
+function getRaceTimeline() {
+  var swim = timeToHours(state.raceTimes.swim);
+  var t1 = timeToHours(state.raceTimes.t1);
+  var bike = timeToHours(state.raceTimes.bike);
+  var t2 = timeToHours(state.raceTimes.t2);
+  var run = timeToHours(state.raceTimes.run);
+  var morningHours = getMorningDurationHours();
+  var morningDurations = blockDurationsForHours(morningHours);
+
+  var swimStart = 0;
+  var t1Start = swimStart + swim;
+  var bikeStart = t1Start + t1;
+  var t2Start = bikeStart + bike;
+  var runStart = t2Start + t2;
+  var finish = runStart + run;
+
+  var morning = [];
+  var morningCursor = -morningHours;
+  morningDurations.forEach(function (d, i) {
+    var startOff = morningCursor;
+    var endOff = morningCursor + d;
+    morning.push({
+      index: i,
+      duration: d,
+      hoursBefore: -startOff,
+      startOff: startOff,
+      endOff: endOff,
+      startClock: clockAtOffsetHours(startOff),
+      endClock: clockAtOffsetHours(endOff),
+      range: clockRangeFromOffsets(startOff, endOff)
+    });
+    morningCursor = endOff;
+  });
+
+  var bikeHours = [];
+  var bikeDurations = blockDurationsForHours(bike);
+  var bikeCursor = bikeStart;
+  bikeDurations.forEach(function (d, i) {
+    var end = bikeCursor + d;
+    bikeHours.push({
+      index: i,
+      startOff: bikeCursor,
+      endOff: end,
+      range: clockRangeFromOffsets(bikeCursor, end)
+    });
+    bikeCursor = end;
+  });
+
+  var swimHoursList = [];
+  var swimDurations = blockDurationsForHours(swim);
+  var swimCursor = swimStart;
+  swimDurations.forEach(function (d, i) {
+    var end = swimCursor + d;
+    swimHoursList.push({
+      index: i,
+      startOff: swimCursor,
+      endOff: end,
+      range: clockRangeFromOffsets(swimCursor, end)
+    });
+    swimCursor = end;
+  });
+
+  var runHours = [];
+  var runDurations = blockDurationsForHours(run);
+  var runCursor = runStart;
+  runDurations.forEach(function (d, i) {
+    var end = runCursor + d;
+    runHours.push({
+      index: i,
+      startOff: runCursor,
+      endOff: end,
+      range: clockRangeFromOffsets(runCursor, end)
+    });
+    runCursor = end;
+  });
+
+  return {
+    gunClock: clockAtOffsetHours(0),
+    wakeClock: clockAtOffsetHours(-morningHours),
+    morningHours: morningHours,
+    finishClock: clockAtOffsetHours(finish),
+    morning: morning,
+    swim: { startOff: swimStart, endOff: t1Start, hours: swim, range: clockRangeFromOffsets(swimStart, t1Start), hoursList: swimHoursList },
+    t1: { startOff: t1Start, endOff: bikeStart, hours: t1, range: clockRangeFromOffsets(t1Start, bikeStart) },
+    bike: { startOff: bikeStart, endOff: t2Start, hours: bike, range: clockRangeFromOffsets(bikeStart, t2Start), hoursList: bikeHours },
+    t2: { startOff: t2Start, endOff: runStart, hours: t2, range: clockRangeFromOffsets(t2Start, runStart) },
+    run: { startOff: runStart, endOff: finish, hours: run, range: clockRangeFromOffsets(runStart, finish), hoursList: runHours },
+    finishOff: finish,
+    totalHours: finish
+  };
+}
+
+function scheduleRowHTML(clock, label, dur) {
+  return '<div class="schedule-row">' +
+    '<span class="schedule-clock">' + escapeHtml(clock) + '</span>' +
+    '<span class="schedule-label">' + label + '</span>' +
+    '<span class="schedule-dur">' + (dur || '') + '</span>' +
+  '</div>';
+}
+
+function renderScheduleList(containerId) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  var tl = getRaceTimeline();
+  var rows = [];
+
+  tl.morning.forEach(function (m) {
+    rows.push(scheduleRowHTML(m.startClock, 'Morning', m.range));
+  });
+  rows.push(scheduleRowHTML(tl.gunClock, 'Swim', tl.swim.hours > 0 ? fmtHM(tl.swim.hours) : '—'));
+  rows.push(scheduleRowHTML(clockAtOffsetHours(tl.t1.startOff), 'T1', tl.t1.hours > 0 ? fmtHM(tl.t1.hours) : '—'));
+  if (tl.bike.hours > 0) {
+    rows.push(scheduleRowHTML(clockAtOffsetHours(tl.bike.startOff), 'Bike', fmtHM(tl.bike.hours)));
+  }
+  rows.push(scheduleRowHTML(clockAtOffsetHours(tl.t2.startOff), 'T2', tl.t2.hours > 0 ? fmtHM(tl.t2.hours) : '—'));
+  if (tl.run.hours > 0) {
+    rows.push(scheduleRowHTML(clockAtOffsetHours(tl.run.startOff), 'Run', fmtHM(tl.run.hours)));
+  }
+  if (tl.totalHours > 0) {
+    rows.push(scheduleRowHTML(tl.finishClock, 'Projected finish', fmtHM(tl.totalHours) + ' total'));
+  }
+
+  el.innerHTML = rows.join('');
+}
+
+function blockDurationsForHours(totalHours) {
+  var durations = [];
+  var remaining = totalHours;
+  var EPS = 1e-9;
+  while (remaining > EPS) {
+    var d = Math.min(1, remaining);
+    durations.push(d);
+    remaining -= d;
+  }
+  return durations;
+}
+
+function resizeSegmentBlocks(existing, durations) {
+  return durations.map(function (d, i) {
+    return existing[i] ? { items: existing[i].items, duration: d } : { items: [], duration: d };
+  });
+}
+
+function regenerateBlocks() {
+  state.log.morning = resizeSegmentBlocks(state.log.morning, blockDurationsForHours(getMorningDurationHours()));
+  state.log.swim = resizeSegmentBlocks(state.log.swim || [], blockDurationsForHours(timeToHours(state.raceTimes.swim)));
+  state.log.bike = resizeSegmentBlocks(state.log.bike, blockDurationsForHours(timeToHours(state.raceTimes.bike)));
+  state.log.run = resizeSegmentBlocks(state.log.run, blockDurationsForHours(timeToHours(state.raceTimes.run)));
+}
+
+function getProduct(id) {
+  for (var i = 0; i < products.length; i++) { if (products[i].id === id) return products[i]; }
+  return null;
+}
+
+function getBlock(segType, idx) {
+  if (segType === 'preRace') return state.log.preRace;
+  if (segType === 't2') return state.log.t2;
+  if (segType === 'morning') return state.log.morning[idx];
+  if (segType === 'swim') return state.log.swim[idx];
+  if (segType === 'bike') return state.log.bike[idx];
+  if (segType === 'run') return state.log.run[idx];
+  return null;
+}
+
+function computeItemsTotals(items) {
+  var totals = { carbs: 0, sodium: 0, fluids: 0, caffeine: 0, calories: 0 };
+  for (var i = 0; i < items.length; i++) {
+    var p = getProduct(items[i].productId);
+    if (!p) continue;
+    var q = Number(items[i].qty) || 0;
+    totals.carbs += p.carbs * q;
+    totals.sodium += p.sodium * q;
+    totals.fluids += p.fluids * q;
+    totals.caffeine += p.caffeine * q;
+    totals.calories += p.calories * q;
+  }
+  return totals;
+}
+
+function allLogItemGroups() {
+  return [state.log.preRace.items, state.log.t2.items]
+    .concat(state.log.morning.map(function (b) { return b.items; }))
+    .concat((state.log.swim || []).map(function (b) { return b.items; }))
+    .concat(state.log.bike.map(function (b) { return b.items; }))
+    .concat(state.log.run.map(function (b) { return b.items; }));
+}
+
+var SERVING_SECTION_ORDER = [
+  { key: 'morning', label: 'morning' },
+  { key: 'swim', label: 'swim' },
+  { key: 'preRace', label: 'T1' },
+  { key: 'bike', label: 'bike' },
+  { key: 't2', label: 'T2' },
+  { key: 'run', label: 'run' }
+];
+
+function labeledLogItemGroups() {
+  return [
+    { key: 'morning', label: 'morning', groups: state.log.morning.map(function (b) { return b.items; }) },
+    { key: 'swim', label: 'swim', groups: (state.log.swim || []).map(function (b) { return b.items; }) },
+    { key: 'preRace', label: 'T1', groups: [state.log.preRace.items] },
+    { key: 'bike', label: 'bike', groups: state.log.bike.map(function (b) { return b.items; }) },
+    { key: 't2', label: 'T2', groups: [state.log.t2.items] },
+    { key: 'run', label: 'run', groups: state.log.run.map(function (b) { return b.items; }) }
+  ];
+}
+
+/** Aggregate total servings of each product across the entire nutrition log, with per-section breakdown. */
+function computeServingTotals() {
+  var byId = {};
+  labeledLogItemGroups().forEach(function (section) {
+    section.groups.forEach(function (items) {
+      items.forEach(function (it) {
+        var id = it.productId;
+        var q = Number(it.qty) || 0;
+        if (q <= 0) return;
+        if (!byId[id]) byId[id] = { productId: id, qty: 0, bySection: {} };
+        byId[id].qty += q;
+        byId[id].bySection[section.key] = (byId[id].bySection[section.key] || 0) + q;
+      });
+    });
+  });
+  return Object.keys(byId).map(function (id) {
+    var p = getProduct(id);
+    var entry = byId[id];
+    var sections = SERVING_SECTION_ORDER.filter(function (s) {
+      return entry.bySection[s.key] > 0;
+    }).map(function (s) {
+      return { key: s.key, label: s.label, qty: entry.bySection[s.key] };
+    });
+    return {
+      productId: id,
+      qty: entry.qty,
+      name: p ? p.name : 'Unknown product',
+      servingLabel: p ? p.servingLabel : '',
+      known: !!p,
+      sections: sections
+    };
+  }).filter(function (row) {
+    return row.qty > 0;
+  }).sort(function (a, b) {
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+}
+
+function sumTotals() {
+  var out = { carbs: 0, sodium: 0, fluids: 0, caffeine: 0, calories: 0 };
+  for (var i = 0; i < arguments.length; i++) {
+    var t = arguments[i];
+    out.carbs += t.carbs; out.sodium += t.sodium; out.fluids += t.fluids;
+    out.caffeine += t.caffeine; out.calories += t.calories;
+  }
+  return out;
+}
+
+function computeAllTotals() {
+  var morningBlocksTotals = state.log.morning.map(function (b) { return computeItemsTotals(b.items); });
+  var swimBlocksTotals = (state.log.swim || []).map(function (b) { return computeItemsTotals(b.items); });
+  var preRace = computeItemsTotals(state.log.preRace.items);
+  var t2 = computeItemsTotals(state.log.t2.items);
+  var bikeBlocksTotals = state.log.bike.map(function (b) { return computeItemsTotals(b.items); });
+  var runBlocksTotals = state.log.run.map(function (b) { return computeItemsTotals(b.items); });
+  var empty = { carbs: 0, sodium: 0, fluids: 0, caffeine: 0, calories: 0 };
+  var morning = sumTotals.apply(null, morningBlocksTotals.concat([empty]));
+  var swim = sumTotals.apply(null, swimBlocksTotals.concat([empty]));
+  var bike = sumTotals.apply(null, bikeBlocksTotals.concat([empty]));
+  var run = sumTotals.apply(null, runBlocksTotals.concat([empty]));
+  var overall = sumTotals(morning, swim, preRace, t2, bike, run);
+
+  var morningHours = getMorningDurationHours();
+  var bikeHours = timeToHours(state.raceTimes.bike);
+  var runHours = timeToHours(state.raceTimes.run);
+  var swimHours = timeToHours(state.raceTimes.swim);
+  var t1Hours = timeToHours(state.raceTimes.t1);
+  var t2Hours = timeToHours(state.raceTimes.t2);
+
+  function ratesFor(totals, hours) {
+    return {
+      carbs: hours > 0 ? totals.carbs / hours : 0,
+      sodium: hours > 0 ? totals.sodium / hours : 0,
+      fluids: hours > 0 ? totals.fluids / hours : 0,
+      caffeine: hours > 0 ? totals.caffeine / hours : 0,
+      calories: hours > 0 ? totals.calories / hours : 0
+    };
+  }
+
+  var morningRates = ratesFor(morning, morningHours);
+  var swimRates = ratesFor(swim, swimHours);
+  var bikeRates = ratesFor(bike, bikeHours);
+  var runRates = ratesFor(run, runHours);
+  var raceFuelHours = bikeHours + runHours;
+  var raceFuel = sumTotals(bike, run);
+  var raceFuelRates = ratesFor(raceFuel, raceFuelHours);
+
+  return {
+    morning: morning, swim: swim, preRace: preRace, t2: t2, bike: bike, run: run, overall: overall,
+    morningRates: morningRates, swimRates: swimRates, bikeRates: bikeRates, runRates: runRates, raceFuelRates: raceFuelRates,
+    morningHours: morningHours, bikeHours: bikeHours, runHours: runHours,
+    swimHours: swimHours, t1Hours: t1Hours, t2Hours: t2Hours,
+    raceFuelHours: raceFuelHours,
+    totalRaceHours: swimHours + t1Hours + bikeHours + t2Hours + runHours,
+    morningBlocksTotals: morningBlocksTotals,
+    swimBlocksTotals: swimBlocksTotals,
+    bikeBlocksTotals: bikeBlocksTotals,
+    runBlocksTotals: runBlocksTotals
+  };
+}
+
+function getStatus(value, min, max) {
+  if (min <= 0 && max <= 0) return { level: 'neutral', label: 'No target set' };
+  if (value <= 0) return { level: 'red', label: 'None logged' };
+  if (value >= min && value <= max) return { level: 'green', label: 'On target' };
+  var lowBand = min * 0.9, highBand = max * 1.1;
+  if (value < min && value >= lowBand) return { level: 'yellow', label: 'Within 10% — slightly low' };
+  if (value > max && value <= highBand) return { level: 'yellow', label: 'Within 10% — slightly high' };
+  if (value < lowBand) return { level: 'red', label: 'Below minimum' };
+  return { level: 'red', label: 'Above maximum' };
+}
+
+function worstStatusLevel(levels) {
+  if (levels.indexOf('red') !== -1) return 'red';
+  if (levels.indexOf('yellow') !== -1) return 'yellow';
+  if (levels.indexOf('green') !== -1) return 'green';
+  return 'neutral';
+}
+
+function mlToDisplay(ml) { return state.units === 'imperial' ? ml / ML_PER_OZ : ml; }
+function displayToMl(val) { return state.units === 'imperial' ? val * ML_PER_OZ : val; }
+function fluidUnitLabel() { return state.units === 'imperial' ? 'oz' : 'ml'; }
+
+/* =========================================================================
+   FORMAT HELPERS
+   ========================================================================= */
+function fmt(n, decimals) {
+  decimals = decimals || 0;
+  n = Number(n); if (!isFinite(n)) n = 0;
+  return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+function fmtQty(q) { return (Math.round(q * 100) / 100).toString(); }
+function fmtHM(hoursDecimal) {
+  var totalMin = Math.round(hoursDecimal * 60);
+  var h = Math.floor(totalMin / 60), m = totalMin % 60;
+  return h + ':' + String(m).padStart(2, '0');
+}
+function round1(n) { return Math.round(n * 10) / 10; }
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, function (c) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+  });
+}
+function slugify(str) {
+  return String(str).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'race-plan';
+}
+
+/* =========================================================================
+   TOAST
+   ========================================================================= */
+var toastTimer = null;
+function toast(msg, type) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + (type || '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.className = 'toast'; }, 3200);
+}
+
+/* =========================================================================
+   RENDER: SETUP TAB
+   ========================================================================= */
+function syncSetupInputs() {
+  ['swim', 't1', 'bike', 't2', 'run'].forEach(function (seg) {
+    var hEl = document.getElementById('time-' + seg + '-h');
+    var mEl = document.getElementById('time-' + seg + '-m');
+    if (hEl) hEl.value = state.raceTimes[seg].h;
+    if (mEl) mEl.value = state.raceTimes[seg].m;
+  });
+  state.startTime = normalizeStartTime(state.startTime);
+  state.wakeTime = normalizeStartTime(state.wakeTime);
+  var startEl = document.getElementById('race-start-time');
+  if (startEl) startEl.value = fmtTimeInputValue(state.startTime);
+  var wakeEl = document.getElementById('wake-time');
+  if (wakeEl) wakeEl.value = fmtTimeInputValue(state.wakeTime);
+  document.getElementById('target-carbs-min').value = state.targets.carbs.min;
+  document.getElementById('target-carbs-max').value = state.targets.carbs.max;
+  document.getElementById('target-sodium-min').value = state.targets.sodium.min;
+  document.getElementById('target-sodium-max').value = state.targets.sodium.max;
+  document.getElementById('target-fluids-min').value = round1(mlToDisplay(state.targets.fluids.min));
+  document.getElementById('target-fluids-max').value = round1(mlToDisplay(state.targets.fluids.max));
+  document.getElementById('fluidUnitLabelTarget').textContent = fluidUnitLabel();
+  updateMorningWindowHint();
+  renderRaceTimelineBar();
+}
+
+function updateMorningWindowHint() {
+  var el = document.getElementById('morningWindowHint');
+  if (!el) return;
+  var hrs = getMorningDurationHours();
+  var slots = blockDurationsForHours(hrs).length;
+  if (hrs <= 0) {
+    el.textContent = 'Set wake-up before race start to create morning fueling rows automatically.';
+    return;
+  }
+  el.textContent = 'Morning fueling: ' + fmtTimeInputValue(state.wakeTime) + ' → ' + fmtTimeInputValue(state.startTime) +
+    ' (' + fmtHM(hrs) + ', ' + slots + ' hourly row' + (slots === 1 ? '' : 's') + ').';
+}
+
+function renderRaceTimelineBar() {
+  var segs = [
+    { key: 'swim', label: 'Swim', color: 'var(--swim)' },
+    { key: 't1', label: 'T1', color: 'var(--t-color)' },
+    { key: 'bike', label: 'Bike', color: 'var(--bike)' },
+    { key: 't2', label: 'T2', color: 'var(--t-color)' },
+    { key: 'run', label: 'Run', color: 'var(--run)' }
+  ];
+  var hours = segs.map(function (s) { return timeToHours(state.raceTimes[s.key]); });
+  var total = hours.reduce(function (a, b) { return a + b; }, 0);
+  var bar = document.getElementById('raceTimelineBar');
+  var totalEl = document.getElementById('raceTimelineTotal');
+  var tl = getRaceTimeline();
+  if (total <= 0) {
+    bar.innerHTML = '';
+    totalEl.textContent = 'Enter segment times above to see your race timeline.';
+    renderScheduleList('raceScheduleList');
+    return;
+  }
+  var cursor = 0;
+  bar.innerHTML = segs.map(function (s, i) {
+    var w = (hours[i] / total) * 100;
+    if (w <= 0) return '';
+    var startClock = clockAtOffsetHours(cursor);
+    var endClock = clockAtOffsetHours(cursor + hours[i]);
+    cursor += hours[i];
+    return '<div class="timeline-seg" style="width:' + w + '%; background:' + s.color + ';" title="' + s.label + ': ' + fmtHM(hours[i]) + ' · ' + startClock + '–' + endClock + '"></div>';
+  }).join('');
+  totalEl.textContent = 'Gun ' + tl.gunClock + ' · finish ~' + tl.finishClock + ' · total ' + fmtHM(total);
+  renderScheduleList('raceScheduleList');
+}
+
+/* =========================================================================
+   RENDER: PRODUCTS TAB
+   ========================================================================= */
+function renderProductsTab() {
+  var tbody = document.getElementById('productTableBody');
+  var unit = fluidUnitLabel();
+  document.getElementById('fluidsColHeader').textContent = 'Fluids (' + unit + ')';
+  if (!products.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-row">No products yet — add your first one above.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = products.map(function (p) {
+    return '<tr data-id="' + p.id + '">' +
+      '<td class="cell-name">' + escapeHtml(p.name) + '</td>' +
+      '<td>' + escapeHtml(p.servingLabel) + '</td>' +
+      '<td class="num">' + fmt(p.carbs, 1) + '</td>' +
+      '<td class="num">' + fmt(p.sodium, 0) + '</td>' +
+      '<td class="num">' + fmt(mlToDisplay(p.fluids), unit === 'oz' ? 1 : 0) + '</td>' +
+      '<td class="num">' + fmt(p.caffeine, 0) + '</td>' +
+      '<td class="num">' + fmt(p.calories, 0) + '</td>' +
+      '<td class="row-actions">' +
+        '<button type="button" class="icon-btn edit-product-btn" data-id="' + p.id + '" aria-label="Edit ' + escapeHtml(p.name) + '" title="Edit">&#9998;</button>' +
+        '<button type="button" class="icon-btn delete-product-btn" data-id="' + p.id + '" aria-label="Delete ' + escapeHtml(p.name) + '" title="Delete">&#128465;</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+var productModal = document.getElementById('productModal');
+var editingProductId = null;
+
+function openProductModal(product) {
+  editingProductId = product ? product.id : null;
+  document.getElementById('productModalTitle').textContent = product ? 'Edit product' : 'Add product';
+  document.getElementById('pf-name').value = product ? product.name : '';
+  document.getElementById('pf-serving').value = product ? product.servingLabel : '';
+  document.getElementById('pf-carbs').value = product ? product.carbs : 0;
+  document.getElementById('pf-sodium').value = product ? product.sodium : 0;
+  document.getElementById('pf-fluids').value = product ? round1(mlToDisplay(product.fluids)) : 0;
+  document.getElementById('pf-caffeine').value = product ? product.caffeine : 0;
+  document.getElementById('pf-calories').value = product ? product.calories : 0;
+  document.getElementById('pf-fluids-unit').textContent = fluidUnitLabel();
+  if (typeof productModal.showModal === 'function') productModal.showModal();
+  else productModal.setAttribute('open', '');
+  document.getElementById('pf-name').focus();
+}
+function closeProductModal() {
+  if (typeof productModal.close === 'function') productModal.close();
+  else productModal.removeAttribute('open');
+  editingProductId = null;
+}
+
+function countProductUsage(id) {
+  var n = 0;
+  allLogItemGroups().forEach(function (items) {
+    items.forEach(function (it) { if (it.productId === id) n++; });
+  });
+  return n;
+}
+
+function removeProductReferences(id) {
+  state.log.preRace.items = state.log.preRace.items.filter(function (it) { return it.productId !== id; });
+  state.log.t2.items = state.log.t2.items.filter(function (it) { return it.productId !== id; });
+  state.log.morning.forEach(function (b) { b.items = b.items.filter(function (it) { return it.productId !== id; }); });
+  (state.log.swim || []).forEach(function (b) { b.items = b.items.filter(function (it) { return it.productId !== id; }); });
+  state.log.bike.forEach(function (b) { b.items = b.items.filter(function (it) { return it.productId !== id; }); });
+  state.log.run.forEach(function (b) { b.items = b.items.filter(function (it) { return it.productId !== id; }); });
+  saveStateDebounced();
+}
+
+function deleteProduct(id) {
+  var p = getProduct(id);
+  if (!p) return;
+  var usage = countProductUsage(id);
+  var msg = usage > 0
+    ? '"' + p.name + '" is used in ' + usage + ' log ' + (usage === 1 ? 'entry' : 'entries') + '. Deleting it will remove those entries too. Continue?'
+    : 'Delete "' + p.name + '"?';
+  if (!confirm(msg)) return;
+  products = products.filter(function (x) { return x.id !== id; });
+  saveProducts();
+  removeProductReferences(id);
+  renderProductsTab(); renderLogTab(); renderSummaryTab(); renderLiveBar();
+  toast('Product deleted.', 'success');
+}
+
+/* =========================================================================
+   RENDER: LOG TAB
+   ========================================================================= */
+function productOptionsHTML() {
+  if (!products.length) return '<option value="">No products in your library yet</option>';
+  return products.map(function (p) {
+    return '<option value="' + p.id + '">' + escapeHtml(p.name) + ' — ' + escapeHtml(p.servingLabel) + '</option>';
+  }).join('');
+}
+
+function blockCardHTML(segType, index, label, showRate) {
+  var idBase = segType + (index != null ? '-' + index : '');
+  return (
+    '<div class="block-card" id="blk-' + idBase + '">' +
+      '<div class="block-side">' +
+        '<div class="block-header">' +
+          '<h4>' + label + '</h4>' +
+        '</div>' +
+        '<div class="block-badges" id="blk-' + idBase + '-badges"></div>' +
+      '</div>' +
+      '<div class="block-main">' +
+        '<div class="block-items" id="blk-' + idBase + '-items"></div>' +
+        '<div class="block-add-row no-print">' +
+          '<select class="product-select" id="blk-' + idBase + '-select" aria-label="Choose product">' + productOptionsHTML() + '</select>' +
+          '<input type="number" inputmode="decimal" class="add-qty-input" id="blk-' + idBase + '-qty" value="1" min="0.25" step="0.25" aria-label="Quantity">' +
+          '<button type="button" class="btn btn-small add-item-btn" data-seg="' + segType + '" data-idx="' + (index != null ? index : '') + '">+ Add</button>' +
+        '</div>' +
+        '<div class="block-totals" id="blk-' + idBase + '-totals"></div>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function swimBlockLabel(i) {
+  var tl = getRaceTimeline();
+  var hour = tl.swim.hoursList[i];
+  var durations = state.log.swim.map(function (b) { return b.duration; });
+  var start = durations.slice(0, i).reduce(function (a, b) { return a + b; }, 0);
+  var end = start + durations[i];
+  var clock = hour ? hour.range : '';
+  return 'Hour ' + (i + 1) + '<span class="block-time">' + fmtHM(start) + '–' + fmtHM(end) + (clock ? ' · ' + clock : '') + '</span>';
+}
+function bikeBlockLabel(i) {
+  var tl = getRaceTimeline();
+  var hour = tl.bike.hoursList[i];
+  var durations = state.log.bike.map(function (b) { return b.duration; });
+  var start = durations.slice(0, i).reduce(function (a, b) { return a + b; }, 0);
+  var end = start + durations[i];
+  var clock = hour ? hour.range : '';
+  return 'Hour ' + (i + 1) + '<span class="block-time">' + fmtHM(start) + '–' + fmtHM(end) + (clock ? ' · ' + clock : '') + '</span>';
+}
+function runBlockLabel(i) {
+  var tl = getRaceTimeline();
+  var hour = tl.run.hoursList[i];
+  var durations = state.log.run.map(function (b) { return b.duration; });
+  var start = durations.slice(0, i).reduce(function (a, b) { return a + b; }, 0);
+  var end = start + durations[i];
+  var clock = hour ? hour.range : '';
+  return 'Hour ' + (i + 1) + '<span class="block-time">' + fmtHM(start) + '–' + fmtHM(end) + (clock ? ' · ' + clock : '') + '</span>';
+}
+function morningBlockLabel(i) {
+  var tl = getRaceTimeline();
+  var slot = tl.morning[i];
+  if (!slot) return 'Morning';
+  return 'Morning ' + (i + 1) + '<span class="block-time">' + slot.range + '</span>';
+}
+
+function renderServingTotals() {
+  var rows = computeServingTotals();
+  var totalServings = rows.reduce(function (sum, row) { return sum + row.qty; }, 0);
+  var statText = '';
+  var listHtml = '';
+  if (!rows.length) {
+    statText = '· none yet';
+    listHtml = '<p class="servings-empty">No products logged yet. Add items in the hourly blocks below.</p>';
+  } else {
+    statText = '· ' + rows.length + ' product' + (rows.length === 1 ? '' : 's') +
+      ' · ' + fmtQty(totalServings) + ' serving' + (totalServings === 1 ? '' : 's');
+    listHtml = rows.map(function (row) {
+      var breakdown = row.sections.map(function (s) {
+        return fmtQty(s.qty) + ' - ' + s.label;
+      }).join(', ');
+      return '<div class="servings-row' + (row.known ? '' : ' item-row-warning') + '">' +
+        '<span class="servings-qty">' + fmtQty(row.qty) + '×</span>' +
+        '<span>' +
+          '<span class="servings-name">' + escapeHtml(row.name) +
+            (breakdown ? ' <span class="servings-breakdown">(' + escapeHtml(breakdown) + ')</span>' : '') +
+          '</span>' +
+          (row.servingLabel ? '<span class="servings-serving">' + escapeHtml(row.servingLabel) + '</span>' : '') +
+        '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  var targets = [
+    { list: 'servingsSummaryList', stat: 'servingsSummaryStat' },
+    { list: 'printServingsList', stat: 'printServingsStat' }
+  ];
+  targets.forEach(function (t) {
+    var listEl = document.getElementById(t.list);
+    var statEl = document.getElementById(t.stat);
+    if (listEl) listEl.innerHTML = listHtml;
+    if (statEl) statEl.textContent = statText;
+  });
+}
+
+function renderLogTab() {
+  renderServingTotals();
+  var morningHours = getMorningDurationHours();
+  var morningHeading = document.getElementById('morningSegHeading');
+  var morningContainer = document.getElementById('logMorningBlocks');
+  var tl = getRaceTimeline();
+  if (morningHours > 0 && state.log.morning.length) {
+    morningHeading.style.display = '';
+    morningContainer.style.display = '';
+    morningContainer.innerHTML = state.log.morning.map(function (b, i) {
+      return blockCardHTML('morning', i, morningBlockLabel(i), false);
+    }).join('');
+    document.getElementById('morningSegHeadingStat').textContent =
+      '· wake ' + tl.wakeClock + ' → gun ' + tl.gunClock + ' · ' + state.log.morning.length + ' row' + (state.log.morning.length === 1 ? '' : 's');
+  } else {
+    morningHeading.style.display = 'none';
+    morningContainer.style.display = 'none';
+    morningContainer.innerHTML = '';
+  }
+
+  var t1Label = 'T1<span class="block-time">' + tl.t1.range + '</span>';
+  document.getElementById('logPreRace').innerHTML = blockCardHTML('preRace', null, t1Label, false);
+  document.getElementById('t1SegHeadingStat').textContent = tl.t1.hours > 0 ? '· ' + fmtHM(tl.t1.hours) + ' · ' + tl.t1.range : '· ' + tl.t1.range;
+
+  var t2Label = 'T2<span class="block-time">' + tl.t2.range + '</span>';
+  document.getElementById('logT2').innerHTML = blockCardHTML('t2', null, t2Label, false);
+  document.getElementById('t2SegHeadingStat').textContent = tl.t2.hours > 0 ? '· ' + fmtHM(tl.t2.hours) + ' · ' + tl.t2.range : '· ' + tl.t2.range;
+
+  var swimHours = timeToHours(state.raceTimes.swim);
+  var bikeHours = timeToHours(state.raceTimes.bike);
+  var runHours = timeToHours(state.raceTimes.run);
+
+  var swimContainer = document.getElementById('logSwimBlocks');
+  if (!state.log.swim) state.log.swim = [];
+  swimContainer.innerHTML = state.log.swim.length
+    ? state.log.swim.map(function (b, i) { return blockCardHTML('swim', i, swimBlockLabel(i), false); }).join('')
+    : '<p class="empty-hint">Enter your estimated swim time in Race setup to generate hourly fueling blocks.</p>';
+  document.getElementById('swimSegHeadingStat').textContent = swimHours > 0 ? '· ' + fmtHM(swimHours) + ' total · ' + tl.swim.range : '';
+
+  var bikeContainer = document.getElementById('logBikeBlocks');
+  bikeContainer.innerHTML = state.log.bike.length
+    ? state.log.bike.map(function (b, i) { return blockCardHTML('bike', i, bikeBlockLabel(i), true); }).join('')
+    : '<p class="empty-hint">Enter your estimated bike time in Race setup to generate hourly fueling blocks.</p>';
+  var bikeStat = bikeHours > 0 ? '· ' + fmtHM(bikeHours) + ' total · ' + tl.bike.range : '';
+  document.getElementById('bikeSegHeadingStat').textContent = bikeStat;
+
+  var runContainer = document.getElementById('logRunBlocks');
+  runContainer.innerHTML = state.log.run.length
+    ? state.log.run.map(function (b, i) { return blockCardHTML('run', i, runBlockLabel(i), true); }).join('')
+    : '<p class="empty-hint">Enter your estimated run time in Race setup to generate hourly fueling blocks.</p>';
+  var runStat = runHours > 0 ? '· ' + fmtHM(runHours) + ' total · ' + tl.run.range : '';
+  document.getElementById('runSegHeadingStat').textContent = runStat;
+
+  state.log.morning.forEach(function (b, i) { renderBlockItems('morning', i); });
+  state.log.swim.forEach(function (b, i) { renderBlockItems('swim', i); });
+  renderBlockItems('preRace', null);
+  renderBlockItems('t2', null);
+  state.log.bike.forEach(function (b, i) { renderBlockItems('bike', i); });
+  state.log.run.forEach(function (b, i) { renderBlockItems('run', i); });
+
+  state.log.morning.forEach(function (b, i) { updateBlockStatsUI('morning', i); });
+  state.log.swim.forEach(function (b, i) { updateBlockStatsUI('swim', i); });
+  updateBlockStatsUI('preRace', null);
+  updateBlockStatsUI('t2', null);
+  state.log.bike.forEach(function (b, i) { updateBlockStatsUI('bike', i); });
+  state.log.run.forEach(function (b, i) { updateBlockStatsUI('run', i); });
+}
+
+function renderBlockItems(segType, idx) {
+  var block = getBlock(segType, idx);
+  var idBase = segType + (idx != null ? '-' + idx : '');
+  var container = document.getElementById('blk-' + idBase + '-items');
+  if (!container) return;
+  if (!block.items.length) {
+    container.innerHTML = '<p class="empty-hint small">No items added yet.</p>';
+    return;
+  }
+  container.innerHTML = block.items.map(function (it, i) {
+    var p = getProduct(it.productId);
+    if (!p) {
+      return '<div class="item-row item-row-warning">' +
+        '<span class="item-name">Unknown product</span><span></span><span></span>' +
+        '<button type="button" class="icon-btn remove-item-btn" data-seg="' + segType + '" data-idx="' + (idx != null ? idx : '') + '" data-item="' + i + '" aria-label="Remove">&times;</button>' +
+      '</div>';
+    }
+    return '<div class="item-row">' +
+      '<span class="item-name">' + escapeHtml(p.name) + '</span>' +
+      '<input type="number" inputmode="decimal" class="item-qty-input" data-seg="' + segType + '" data-idx="' + (idx != null ? idx : '') + '" data-item="' + i + '" value="' + it.qty + '" min="0" step="0.25" aria-label="Quantity for ' + escapeHtml(p.name) + '">' +
+      '<span class="item-macro" id="itemmacro-' + idBase + '-' + i + '"></span>' +
+      '<button type="button" class="icon-btn remove-item-btn" data-seg="' + segType + '" data-idx="' + (idx != null ? idx : '') + '" data-item="' + i + '" aria-label="Remove item">&times;</button>' +
+    '</div>';
+  }).join('');
+}
+
+function updateItemMacroText(segType, idx, itemIndex) {
+  var block = getBlock(segType, idx);
+  var it = block.items[itemIndex];
+  var p = getProduct(it.productId);
+  var idBase = segType + (idx != null ? '-' + idx : '');
+  var el = document.getElementById('itemmacro-' + idBase + '-' + itemIndex);
+  if (!el || !p) return;
+  var q = Number(it.qty) || 0;
+  var unit = fluidUnitLabel();
+  var txt = fmt(p.carbs * q, 0) + 'g C · ' + fmt(p.sodium * q, 0) + 'mg Na · ' + fmt(mlToDisplay(p.fluids * q), unit === 'oz' ? 1 : 0) + unit + ' · ' + fmt(p.calories * q, 0) + 'kcal';
+  if (p.caffeine) txt += ' · ' + fmt(p.caffeine * q, 0) + 'mg caf';
+  el.textContent = txt;
+}
+
+function updateBlockStatsUI(segType, idx) {
+  var block = getBlock(segType, idx);
+  if (!block) return;
+  var idBase = segType + (idx != null ? '-' + idx : '');
+  var totals = computeItemsTotals(block.items);
+  var unit = fluidUnitLabel();
+  var cardEl = document.getElementById('blk-' + idBase);
+  var timedHourly = (segType === 'morning' || segType === 'swim' || segType === 'bike' || segType === 'run') && block.duration > 0;
+
+  var sC = null, sS = null, sF = null;
+  var rCal = 0, rC = 0, rS = 0, rF = 0, rCaf = 0;
+  if (timedHourly) {
+    rCal = totals.calories / block.duration;
+    rC = totals.carbs / block.duration;
+    rS = totals.sodium / block.duration;
+    rF = totals.fluids / block.duration;
+    rCaf = totals.caffeine / block.duration;
+    sC = getStatus(rC, state.targets.carbs.min, state.targets.carbs.max);
+    sS = getStatus(rS, state.targets.sodium.min, state.targets.sodium.max);
+    sF = getStatus(rF, state.targets.fluids.min, state.targets.fluids.max);
+  }
+
+  var totalsEl = document.getElementById('blk-' + idBase + '-totals');
+  if (totalsEl) {
+    if (timedHourly) {
+      totalsEl.innerHTML =
+        '<strong>Hourly rates:</strong> ' +
+        '<span class="nutrient-status neutral">' + fmt(rCal, 0) + ' kcal/hr</span> · ' +
+        '<span class="nutrient-status ' + sC.level + '" title="' + sC.label + '">' + fmt(rC, 0) + 'g carbs/hr</span> · ' +
+        '<span class="nutrient-status ' + sS.level + '" title="' + sS.label + '">' + fmt(rS, 0) + 'mg sodium/hr</span> · ' +
+        '<span class="nutrient-status ' + sF.level + '" title="' + sF.label + '">' + fmt(mlToDisplay(rF), unit === 'oz' ? 1 : 0) + unit + '/hr</span> · ' +
+        '<span class="nutrient-status neutral">' + fmt(rCaf, 0) + 'mg caffeine/hr</span>' +
+        '<br><span style="color:var(--text-faint)">Block totals: ' + fmt(totals.calories, 0) + ' kcal · ' +
+        fmt(totals.carbs, 0) + 'g C · ' + fmt(totals.sodium, 0) + 'mg Na · ' +
+        fmt(mlToDisplay(totals.fluids), unit === 'oz' ? 1 : 0) + unit + ' · ' +
+        fmt(totals.caffeine, 0) + 'mg caf</span>';
+    } else {
+      totalsEl.innerHTML =
+        '<strong>Block totals:</strong> ' + fmt(totals.calories, 0) + ' kcal · ' +
+        fmt(totals.carbs, 0) + 'g carbs · ' + fmt(totals.sodium, 0) + 'mg sodium · ' +
+        fmt(mlToDisplay(totals.fluids), unit === 'oz' ? 1 : 0) + unit + ' · ' +
+        fmt(totals.caffeine, 0) + 'mg caffeine';
+    }
+  }
+
+  var badgesEl = document.getElementById('blk-' + idBase + '-badges');
+  if (badgesEl) {
+    if (timedHourly) {
+      badgesEl.innerHTML =
+        '<span class="mini-badge neutral" title="Calories">Cal ' + fmt(rCal, 0) + '/hr</span>' +
+        '<span class="mini-badge ' + sC.level + '" title="Carbs: ' + sC.label + '">Carb ' + fmt(rC, 0) + '/hr</span>' +
+        '<span class="mini-badge ' + sS.level + '" title="Sodium: ' + sS.label + '">Sodium ' + fmt(rS, 0) + '/hr</span>' +
+        '<span class="mini-badge ' + sF.level + '" title="Fluids: ' + sF.label + '">Fl ' + fmt(mlToDisplay(rF), unit === 'oz' ? 1 : 0) + '/hr</span>' +
+        '<span class="mini-badge neutral" title="Caffeine">Caf ' + fmt(rCaf, 0) + '/hr</span>';
+      if (cardEl) {
+        cardEl.classList.remove('status-red', 'status-yellow', 'status-green', 'status-neutral');
+        cardEl.classList.add('status-' + worstStatusLevel([sC.level, sS.level, sF.level]));
+      }
+    } else {
+      badgesEl.innerHTML = '';
+      if (cardEl) cardEl.classList.remove('status-red', 'status-yellow', 'status-green', 'status-neutral');
+    }
+  }
+
+  block.items.forEach(function (it, i) { if (getProduct(it.productId)) updateItemMacroText(segType, idx, i); });
+}
+
+/* Event delegation for the log tab */
+var logTabEl = document.getElementById('tab-log');
+logTabEl.addEventListener('click', function (e) {
+  var addBtn = e.target.closest('.add-item-btn');
+  if (addBtn) {
+    var segType = addBtn.dataset.seg;
+    var idx = addBtn.dataset.idx === '' ? null : Number(addBtn.dataset.idx);
+    var idBase = segType + (idx != null ? '-' + idx : '');
+    var select = document.getElementById('blk-' + idBase + '-select');
+    var qtyInput = document.getElementById('blk-' + idBase + '-qty');
+    var productId = select.value;
+    var qty = Math.max(0.25, Number(qtyInput.value) || 1);
+    if (!productId) { toast('Add a product to your library first.', 'error'); return; }
+    var block = getBlock(segType, idx);
+    block.items.push({ productId: productId, qty: qty });
+    saveStateDebounced();
+    renderBlockItems(segType, idx);
+    updateBlockStatsUI(segType, idx);
+    renderServingTotals();
+    renderSummaryTab();
+    renderLiveBar();
+    return;
+  }
+  var removeBtn = e.target.closest('.remove-item-btn');
+  if (removeBtn) {
+    var segType2 = removeBtn.dataset.seg;
+    var idx2 = removeBtn.dataset.idx === '' ? null : Number(removeBtn.dataset.idx);
+    var itemIndex = Number(removeBtn.dataset.item);
+    var block2 = getBlock(segType2, idx2);
+    block2.items.splice(itemIndex, 1);
+    saveStateDebounced();
+    renderBlockItems(segType2, idx2);
+    updateBlockStatsUI(segType2, idx2);
+    renderServingTotals();
+    renderSummaryTab();
+    renderLiveBar();
+    return;
+  }
+});
+
+logTabEl.addEventListener('input', function (e) {
+  if (e.target.matches('.item-qty-input')) {
+    var segType = e.target.dataset.seg;
+    var idx = e.target.dataset.idx === '' ? null : Number(e.target.dataset.idx);
+    var itemIndex = Number(e.target.dataset.item);
+    var block = getBlock(segType, idx);
+    block.items[itemIndex].qty = Math.max(0, Number(e.target.value) || 0);
+    saveStateDebounced();
+    updateBlockStatsUI(segType, idx);
+    renderServingTotals();
+    renderSummaryTab();
+    renderLiveBar();
+  }
+});
+
+/* =========================================================================
+   RENDER: SUMMARY TAB
+   ========================================================================= */
+function statCardHTML(icon, label, value, unit) {
+  return '<div class="stat-card"><div class="stat-icon">' + icon + '</div>' +
+    '<div class="stat-value">' + value + '<span class="stat-unit">' + unit + '</span></div>' +
+    '<div class="stat-label">' + label + '</div></div>';
+}
+
+function gaugeBarHTML(value, min, max, level) {
+  var scaleMax = Math.max(max * 1.5, value * 1.1, 1);
+  var pct = Math.min(100, (value / scaleMax) * 100);
+  var bandStart = (min / scaleMax) * 100;
+  var bandEnd = (max / scaleMax) * 100;
+  return '<div class="gauge">' +
+    '<div class="gauge-band" style="left:' + bandStart + '%; width:' + (bandEnd - bandStart) + '%;"></div>' +
+    '<div class="gauge-fill ' + level + '" style="width:' + pct + '%;"></div>' +
+    '<div class="gauge-marker" style="left:' + pct + '%;"></div>' +
+  '</div>';
+}
+
+function rateCompareRowHTML(label, unitLabel, morningVal, bikeVal, runVal, min, max, dec, showMorning) {
+  var sBike = getStatus(bikeVal, min, max);
+  var sRun = getStatus(runVal, min, max);
+  var colsClass = showMorning ? 'rate-row-cols cols-3' : 'rate-row-cols';
+  var morningCol = '';
+  if (showMorning) {
+    morningCol =
+      '<div class="rate-col">' +
+        '<div class="rate-col-head morning">Morning</div>' +
+        '<div class="rate-col-value">' + fmt(morningVal, dec) + '</div>' +
+        '<div class="badge neutral">Pre-race</div>' +
+      '</div>';
+  }
+  return '<div class="rate-row">' +
+    '<div class="rate-row-label">' + label + ' <span class="rate-row-unit">(' + unitLabel + ')</span></div>' +
+    '<div class="' + colsClass + '">' +
+      morningCol +
+      '<div class="rate-col">' +
+        '<div class="rate-col-head bike">Bike</div>' +
+        '<div class="rate-col-value">' + fmt(bikeVal, dec) + '</div>' +
+        gaugeBarHTML(bikeVal, min, max, sBike.level) +
+        '<div class="badge ' + sBike.level + '">' + sBike.label + '</div>' +
+      '</div>' +
+      '<div class="rate-col">' +
+        '<div class="rate-col-head run">Run</div>' +
+        '<div class="rate-col-value">' + fmt(runVal, dec) + '</div>' +
+        gaugeBarHTML(runVal, min, max, sRun.level) +
+        '<div class="badge ' + sRun.level + '">' + sRun.label + '</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderCaffeineTimeline(totals) {
+  var el = document.getElementById('caffeineTimeline');
+  var entries = [];
+  var running = 0;
+  var tl = getRaceTimeline();
+  function pushEntries(items, label) {
+    var t = computeItemsTotals(items);
+    if (t.caffeine > 0) { running += t.caffeine; entries.push({ label: label, amount: t.caffeine, running: running }); }
+  }
+  state.log.morning.forEach(function (b, i) {
+    var slot = tl.morning[i];
+    var label = 'Morning ' + (i + 1);
+    if (slot) label += ' (' + slot.startClock + ')';
+    pushEntries(b.items, label);
+  });
+  (state.log.swim || []).forEach(function (b, i) {
+    var hour = tl.swim.hoursList[i];
+    pushEntries(b.items, 'Swim ' + (i + 1) + (hour ? ' (' + clockAtOffsetHours(hour.startOff) + ')' : ''));
+  });
+  pushEntries(state.log.preRace.items, 'T1 (' + clockAtOffsetHours(tl.t1.startOff) + ')');
+  state.log.bike.forEach(function (b, i) {
+    var hour = tl.bike.hoursList[i];
+    pushEntries(b.items, 'Bike ' + (i + 1) + (hour ? ' (' + clockAtOffsetHours(hour.startOff) + ')' : ''));
+  });
+  pushEntries(state.log.t2.items, 'T2 (' + clockAtOffsetHours(tl.t2.startOff) + ')');
+  state.log.run.forEach(function (b, i) {
+    var hour = tl.run.hoursList[i];
+    pushEntries(b.items, 'Run ' + (i + 1) + (hour ? ' (' + clockAtOffsetHours(hour.startOff) + ')' : ''));
+  });
+
+  if (!entries.length) {
+    el.innerHTML = '<p class="empty-hint">No caffeine logged yet. Add a caffeinated gel, chew, or cola to your plan to see the timeline here.</p>';
+    return;
+  }
+  var totalCaf = totals.overall.caffeine;
+  var advisory = '';
+  if (totalCaf > 500) {
+    advisory = '<p class="advisory red">Total caffeine is ' + fmt(totalCaf, 0) + 'mg. Many athletes cap race-day caffeine around 400–500mg total to avoid GI upset or overstimulation — consider spacing doses or trimming a source.</p>';
+  } else if (totalCaf > 0) {
+    advisory = '<p class="advisory neutral">Total caffeine: ' + fmt(totalCaf, 0) + 'mg. A common approach is holding caffeine back for the run, when perceived-effort benefits tend to matter most.</p>';
+  }
+  el.innerHTML = '<div class="timeline-list">' + entries.map(function (e) {
+    return '<div class="timeline-entry">' +
+      '<span class="timeline-label">' + escapeHtml(e.label) + '</span>' +
+      '<span class="timeline-amount">+' + fmt(e.amount, 0) + 'mg</span>' +
+      '<span class="timeline-running">' + fmt(e.running, 0) + 'mg total</span>' +
+    '</div>';
+  }).join('') + '</div>' + advisory;
+}
+
+function renderDisciplineTable(totals) {
+  var el = document.getElementById('disciplineTable');
+  var unit = fluidUnitLabel();
+  var rows = [];
+  var tl = getRaceTimeline();
+
+  function rateCell(t, hours) {
+    if (!hours || hours <= 0) return '—';
+    return fmt(t.carbs / hours, 0) + 'g · ' + fmt(t.sodium / hours, 0) + 'mg · ' +
+      fmt(mlToDisplay(t.fluids / hours), unit === 'oz' ? 1 : 0) + unit + '/hr';
+  }
+  function pushDiscipline(name, color, durationLabel, t, hours) {
+    rows.push('<tr>' +
+      '<td class="discipline-name"><span class="seg-dot" style="background:' + color + ';"></span>' + name +
+        '<span class="discipline-sub">' + durationLabel + '</span></td>' +
+      '<td class="num">' + fmt(t.carbs, 0) + 'g</td>' +
+      '<td class="num">' + fmt(t.sodium, 0) + 'mg</td>' +
+      '<td class="num">' + fmt(mlToDisplay(t.fluids), unit === 'oz' ? 1 : 0) + unit + '</td>' +
+      '<td class="num">' + (t.caffeine ? fmt(t.caffeine, 0) + 'mg' : '—') + '</td>' +
+      '<td class="num">' + fmt(t.calories, 0) + '</td>' +
+      '<td class="rate-cell">' + rateCell(t, hours) + '</td>' +
+    '</tr>');
+  }
+
+  if (totals.morningHours > 0) {
+    var mRange = tl.morning.length ? tl.morning[0].startClock + '–' + tl.gunClock : '';
+    pushDiscipline('Morning', 'var(--accent)', fmtHM(totals.morningHours) + ' pre-race' + (mRange ? ' · ' + mRange : ''), totals.morning, totals.morningHours);
+  }
+  pushDiscipline('Swim', 'var(--swim)', fmtHM(totals.swimHours) + ' · ' + tl.swim.range, totals.swim, totals.swimHours);
+  pushDiscipline('T1', 'var(--t-color)', fmtHM(totals.t1Hours) + ' · ' + tl.t1.range, totals.preRace, null);
+  pushDiscipline('Bike', 'var(--bike)', fmtHM(totals.bikeHours) + ' · ' + tl.bike.range, totals.bike, totals.bikeHours);
+  pushDiscipline('T2', 'var(--t-color)', fmtHM(totals.t2Hours) + ' · ' + tl.t2.range, totals.t2, null);
+  pushDiscipline('Run', 'var(--run)', fmtHM(totals.runHours) + ' · ' + tl.run.range, totals.run, totals.runHours);
+
+  el.innerHTML =
+    '<thead><tr><th>Discipline</th><th class="num">Carbs</th><th class="num">Sodium</th><th class="num">Fluids</th><th class="num">Caffeine</th><th class="num">Calories</th><th>Per hour</th></tr></thead>' +
+    '<tbody>' + rows.join('') + '</tbody>' +
+    '<tfoot><tr class="discipline-total">' +
+      '<td>Day total · race ' + fmtHM(totals.totalRaceHours) + ' · finish ~' + tl.finishClock + '</td>' +
+      '<td class="num">' + fmt(totals.overall.carbs, 0) + 'g</td>' +
+      '<td class="num">' + fmt(totals.overall.sodium, 0) + 'mg</td>' +
+      '<td class="num">' + fmt(mlToDisplay(totals.overall.fluids), unit === 'oz' ? 1 : 0) + unit + '</td>' +
+      '<td class="num">' + fmt(totals.overall.caffeine, 0) + 'mg</td>' +
+      '<td class="num">' + fmt(totals.overall.calories, 0) + '</td>' +
+      '<td class="rate-cell">' +
+        (totals.raceFuelHours > 0
+          ? 'Bike+run: ' + fmt(totals.raceFuelRates.carbs, 0) + 'g C/hr'
+          : '—') +
+      '</td>' +
+    '</tr></tfoot>';
+}
+
+function renderPlanTable(totals) {
+  var el = document.getElementById('planTable');
+  var unit = fluidUnitLabel();
+  var rows = [];
+  var tl = getRaceTimeline();
+  function pushRow(segName, segRange, items, duration) {
+    var t = computeItemsTotals(items);
+    var itemsText = items.length ? items.map(function (it) {
+      var p = getProduct(it.productId);
+      return p ? (fmtQty(it.qty) + '× ' + escapeHtml(p.name)) : 'unknown item';
+    }).join(', ') : '—';
+    var rateText = '—';
+    if (duration) {
+      rateText = fmt(t.carbs / duration, 0) + 'g · ' +
+        fmt(t.sodium / duration, 0) + 'mg · ' +
+        fmt(mlToDisplay(t.fluids / duration), unit === 'oz' ? 1 : 0) + unit;
+    }
+    var segHtml = '<span class="seg-name">' + escapeHtml(segName) + '</span>' +
+      (segRange ? '<span class="seg-range">' + escapeHtml(segRange) + '</span>' : '');
+    rows.push('<tr>' +
+      '<td class="seg-cell">' + segHtml + '</td>' +
+      '<td class="items-cell">' + itemsText + '</td>' +
+      '<td class="num">' + fmt(t.carbs, 0) + 'g</td>' +
+      '<td class="num">' + fmt(t.sodium, 0) + 'mg</td>' +
+      '<td class="num">' + fmt(mlToDisplay(t.fluids), unit === 'oz' ? 1 : 0) + unit + '</td>' +
+      '<td class="num">' + (t.caffeine ? fmt(t.caffeine, 0) + 'mg' : '—') + '</td>' +
+      '<td class="num">' + fmt(t.calories, 0) + '</td>' +
+      '<td class="rate-cell">' + rateText + '</td>' +
+    '</tr>');
+  }
+  state.log.morning.forEach(function (b, i) {
+    var slot = tl.morning[i];
+    pushRow('Morning ' + (i + 1), slot ? slot.range : '', b.items, b.duration);
+  });
+  (state.log.swim || []).forEach(function (b, i) {
+    var hour = tl.swim.hoursList[i];
+    pushRow('Swim ' + (i + 1), hour ? hour.range : '', b.items, b.duration);
+  });
+  pushRow('T1', tl.t1.range, state.log.preRace.items, null);
+  state.log.bike.forEach(function (b, i) {
+    var hour = tl.bike.hoursList[i];
+    pushRow('Bike ' + (i + 1), hour ? hour.range : '', b.items, b.duration);
+  });
+  pushRow('T2', tl.t2.range, state.log.t2.items, null);
+  state.log.run.forEach(function (b, i) {
+    var hour = tl.run.hoursList[i];
+    pushRow('Run ' + (i + 1), hour ? hour.range : '', b.items, b.duration);
+  });
+
+  el.innerHTML =
+    '<thead><tr><th>Segment</th><th>Items</th><th class="num">Carbs</th><th class="num">Sodium</th><th class="num">Fluids</th><th class="num">Caffeine</th><th class="num">Calories</th><th>Rate /hr</th></tr></thead>' +
+    '<tbody>' + rows.join('') + '</tbody>' +
+    '<tfoot><tr>' +
+      '<td colspan="2">Day total · race ' + fmtHM(totals.totalRaceHours) + ' · finish ~' + tl.finishClock + '</td>' +
+      '<td class="num">' + fmt(totals.overall.carbs, 0) + 'g</td>' +
+      '<td class="num">' + fmt(totals.overall.sodium, 0) + 'mg</td>' +
+      '<td class="num">' + fmt(mlToDisplay(totals.overall.fluids), unit === 'oz' ? 1 : 0) + unit + '</td>' +
+      '<td class="num">' + fmt(totals.overall.caffeine, 0) + 'mg</td>' +
+      '<td class="num">' + fmt(totals.overall.calories, 0) + '</td>' +
+      '<td></td>' +
+    '</tr></tfoot>';
+}
+
+function renderSummaryTab() {
+  var totals = computeAllTotals();
+  var unit = fluidUnitLabel();
+  var showMorning = totals.morningHours > 0;
+  var tl = getRaceTimeline();
+
+  document.getElementById('summaryTotals').innerHTML =
+    statCardHTML('C', 'Total carbs', fmt(totals.overall.carbs, 0), 'g') +
+    statCardHTML('Na', 'Total sodium', fmt(totals.overall.sodium, 0), 'mg') +
+    statCardHTML('Fl', 'Total fluids', fmt(mlToDisplay(totals.overall.fluids), unit === 'oz' ? 1 : 0), unit) +
+    statCardHTML('Caf', 'Total caffeine', fmt(totals.overall.caffeine, 0), 'mg') +
+    statCardHTML('Kcal', 'Total calories', fmt(totals.overall.calories, 0), 'kcal');
+
+  renderScheduleList('summaryScheduleList');
+  renderDisciplineTable(totals);
+
+  document.getElementById('summaryRates').innerHTML =
+    rateCompareRowHTML('Carbs', 'g/hr', totals.morningRates.carbs, totals.bikeRates.carbs, totals.runRates.carbs, state.targets.carbs.min, state.targets.carbs.max, 0, showMorning) +
+    rateCompareRowHTML('Sodium', 'mg/hr', totals.morningRates.sodium, totals.bikeRates.sodium, totals.runRates.sodium, state.targets.sodium.min, state.targets.sodium.max, 0, showMorning) +
+    rateCompareRowHTML('Fluids', unit + '/hr', mlToDisplay(totals.morningRates.fluids), mlToDisplay(totals.bikeRates.fluids), mlToDisplay(totals.runRates.fluids), mlToDisplay(state.targets.fluids.min), mlToDisplay(state.targets.fluids.max), unit === 'oz' ? 1 : 0, showMorning);
+
+  renderCaffeineTimeline(totals);
+  renderPlanTable(totals);
+  renderServingTotals();
+  renderPrintPaces();
+
+  var sub = document.getElementById('printSubtitle');
+  if (sub) {
+    sub.textContent = (state.planName || 'Race plan') +
+      ' — swim start ' + tl.gunClock +
+      ' — finish ~' + tl.finishClock +
+      ' — est. race ' + fmtHM(totals.totalRaceHours) +
+      ' — units: ' + state.units;
+  }
+}
+
+/* =========================================================================
+   RENDER: LIVE BAR
+   ========================================================================= */
+function renderLiveBar() {
+  var totals = computeAllTotals();
+  var unit = fluidUnitLabel();
+  var cStatus = getStatus(totals.bikeRates.carbs, state.targets.carbs.min, state.targets.carbs.max);
+  var rStatus = getStatus(totals.runRates.carbs, state.targets.carbs.min, state.targets.carbs.max);
+  var mStatus = totals.morningHours > 0
+    ? getStatus(totals.morningRates.carbs, state.targets.carbs.min, state.targets.carbs.max)
+    : { level: 'neutral' };
+  document.getElementById('liveBar').innerHTML =
+    '<div class="live-stat"><span class="live-label">Carbs</span><span class="live-value">' + fmt(totals.overall.carbs, 0) + 'g</span></div>' +
+    '<div class="live-stat"><span class="live-label">Sodium</span><span class="live-value">' + fmt(totals.overall.sodium, 0) + 'mg</span></div>' +
+    '<div class="live-stat"><span class="live-label">Fluids</span><span class="live-value">' + fmt(mlToDisplay(totals.overall.fluids), unit === 'oz' ? 1 : 0) + unit + '</span></div>' +
+    '<div class="live-stat"><span class="live-label">Caffeine</span><span class="live-value">' + fmt(totals.overall.caffeine, 0) + 'mg</span></div>' +
+    '<div class="live-stat"><span class="live-label">Calories</span><span class="live-value">' + fmt(totals.overall.calories, 0) + '</span></div>' +
+    '<div class="live-stat"><span class="live-label">Morning</span><span class="live-value ' + mStatus.level + '">' +
+      (totals.morningHours > 0 ? fmt(totals.morningRates.carbs, 0) + 'g/hr' : '—') + '</span></div>' +
+    '<div class="live-stat"><span class="live-label">Bike</span><span class="live-value ' + cStatus.level + '">' + fmt(totals.bikeRates.carbs, 0) + 'g/hr</span></div>' +
+    '<div class="live-stat"><span class="live-label">Run</span><span class="live-value ' + rStatus.level + '">' + fmt(totals.runRates.carbs, 0) + 'g/hr</span></div>';
+}
+
+/* =========================================================================
+   TABS
+   ========================================================================= */
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(function (b) {
+    var active = b.dataset.tab === tabName;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  document.querySelectorAll('.tab-panel').forEach(function (p) {
+    p.classList.toggle('active', p.id === 'tab-' + tabName);
+  });
+}
+document.querySelector('.tabs').addEventListener('click', function (e) {
+  var btn = e.target.closest('.tab-btn');
+  if (btn) switchTab(btn.dataset.tab);
+});
+
+/* =========================================================================
+   PACES TAB
+   ========================================================================= */
+var KM_PER_MILE = 1.609344;
+var RACE_DISTANCES_KM = {
+  full: { swim: 3.8, bike: 180, run: 42.195 },
+  half: { swim: 1.9, bike: 90, run: 21.0975 }
+};
+
+function getRaceDistancesKm() {
+  return RACE_DISTANCES_KM[normalizeRaceFormat(state.raceFormat)] || RACE_DISTANCES_KM.full;
+}
+
+function speedUnitLabel() {
+  return state.units === 'imperial' ? 'mph' : 'km/h';
+}
+
+function kmhToDisplaySpeed(kmh) {
+  if (kmh === '' || kmh == null) return '';
+  var n = Number(kmh);
+  if (!isFinite(n)) return '';
+  return state.units === 'imperial' ? round1(n / KM_PER_MILE) : round1(n);
+}
+
+function displaySpeedToKmh(val) {
+  if (val === '' || val == null || (typeof val === 'string' && !String(val).trim())) return '';
+  var n = Number(val);
+  if (!isFinite(n) || n < 0) return '';
+  var kmh = state.units === 'imperial' ? n * KM_PER_MILE : n;
+  return Math.round(kmh * 100) / 100;
+}
+
+function fmtPaceSeconds(totalSec) {
+  if (!isFinite(totalSec) || totalSec <= 0) return '—';
+  var sec = Math.round(totalSec);
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function swimPaceHint(speedKmh) {
+  if (!speedKmh || speedKmh <= 0) return '';
+  if (state.units === 'imperial') {
+    /* 100 yd = 0.09144 km */
+    return fmtPaceSeconds((0.09144 / speedKmh) * 3600) + ' /100yd';
+  }
+  return fmtPaceSeconds((0.1 / speedKmh) * 3600) + ' /100m';
+}
+
+function runPaceHint(speedKmh) {
+  if (!speedKmh || speedKmh <= 0) return '';
+  if (state.units === 'imperial') {
+    return fmtPaceSeconds((KM_PER_MILE / speedKmh) * 3600) + ' /mi';
+  }
+  return fmtPaceSeconds((1 / speedKmh) * 3600) + ' /km';
+}
+
+function fmtHrRange(p) {
+  if (p.hrMin === '' && p.hrMax === '') return '—';
+  if (p.hrMin !== '' && p.hrMax !== '') return p.hrMin + '–' + p.hrMax + ' bpm';
+  if (p.hrMin !== '') return p.hrMin + '+ bpm';
+  return '≤' + p.hrMax + ' bpm';
+}
+
+function fmtSpeedRange(p) {
+  var unit = speedUnitLabel();
+  var a = kmhToDisplaySpeed(p.speedMin);
+  var b = kmhToDisplaySpeed(p.speedMax);
+  if (a === '' && b === '') return '—';
+  if (a !== '' && b !== '') return a + '–' + b + ' ' + unit;
+  if (a !== '') return a + '+ ' + unit;
+  return '≤' + b + ' ' + unit;
+}
+
+function orderedSpeedPair(p) {
+  var lo = p.speedMin === '' ? null : Number(p.speedMin);
+  var hi = p.speedMax === '' ? null : Number(p.speedMax);
+  if (lo != null && (!isFinite(lo) || lo <= 0)) lo = null;
+  if (hi != null && (!isFinite(hi) || hi <= 0)) hi = null;
+  if (lo == null && hi == null) return null;
+  if (lo == null) return { slow: hi, fast: hi };
+  if (hi == null) return { slow: lo, fast: lo };
+  return { slow: Math.min(lo, hi), fast: Math.max(lo, hi) };
+}
+
+function estimateDurationHours(disc) {
+  var dist = getRaceDistancesKm()[disc];
+  var pair = orderedSpeedPair(state.paces[disc] || {});
+  if (!dist || !pair) return null;
+  return {
+    fastHours: dist / pair.fast,
+    slowHours: dist / pair.slow,
+    midHours: dist / ((pair.slow + pair.fast) / 2),
+    distanceKm: dist
+  };
+}
+
+function hoursToHM(hoursDecimal) {
+  var totalMin = Math.max(0, Math.round(Number(hoursDecimal) * 60));
+  return { h: Math.floor(totalMin / 60), m: totalMin % 60 };
+}
+
+function formatDistanceLabel(disc) {
+  var km = getRaceDistancesKm()[disc];
+  if (state.units === 'imperial') {
+    return round1(km / KM_PER_MILE) + ' mi';
+  }
+  return (Math.round(km * 100) / 100) + ' km';
+}
+
+function updateRaceDistanceHint() {
+  var el = document.getElementById('raceDistanceHint');
+  if (!el) return;
+  var fmt = normalizeRaceFormat(state.raceFormat);
+  el.textContent = (fmt === 'half' ? 'Half Ironman distances: ' : 'Full Ironman distances: ') +
+    'Swim ' + formatDistanceLabel('swim') +
+    ' · Bike ' + formatDistanceLabel('bike') +
+    ' · Run ' + formatDistanceLabel('run');
+}
+
+function updateRaceFormatToggleUI() {
+  var fmt = normalizeRaceFormat(state.raceFormat);
+  document.querySelectorAll('.race-format-btn').forEach(function (b) {
+    b.classList.toggle('active', b.dataset.format === fmt);
+  });
+}
+
+function updatePaceEstimateUI(disc) {
+  var el = document.getElementById('pace-' + disc + '-estimate');
+  var hintEl = document.getElementById('pace-' + disc + '-speed-hint');
+  var labelEl = document.getElementById('pace-' + disc + '-speed-label');
+  if (labelEl) labelEl.textContent = 'Speed range (' + speedUnitLabel() + ')';
+  var p = state.paces[disc];
+  var pair = orderedSpeedPair(p);
+  if (hintEl) {
+    if (!pair) {
+      hintEl.textContent = disc === 'bike'
+        ? 'Typical IM bike: ~28–36 km/h (17–22 mph)'
+        : (disc === 'swim'
+          ? 'Typical IM swim: ~2.6–3.4 km/h (~1:45–2:20 /100m)'
+          : 'Typical IM run: ~9–12 km/h (~5:00–6:40 /km)');
+    } else if (disc === 'swim') {
+      hintEl.textContent = '≈ ' + swimPaceHint(pair.slow) + (pair.slow !== pair.fast ? ' – ' + swimPaceHint(pair.fast) : '');
+    } else if (disc === 'run') {
+      hintEl.textContent = '≈ ' + runPaceHint(pair.slow) + (pair.slow !== pair.fast ? ' – ' + runPaceHint(pair.fast) : '');
+    } else {
+      hintEl.textContent = formatDistanceLabel('bike') + ' course';
+    }
+  }
+  if (!el) return;
+  var est = estimateDurationHours(disc);
+  if (!est) {
+    el.innerHTML = 'Enter a speed range to estimate ' + disc + ' time for ' + formatDistanceLabel(disc) + '.';
+    return;
+  }
+  var mid = fmtHM(est.midHours);
+  if (Math.abs(est.slowHours - est.fastHours) < 1 / 120) {
+    el.innerHTML = formatDistanceLabel(disc) + ' ≈ <strong>' + mid + '</strong>';
+  } else {
+    el.innerHTML = formatDistanceLabel(disc) + ' ≈ <strong>' + fmtHM(est.fastHours) + ' – ' + fmtHM(est.slowHours) + '</strong>' +
+      ' <span style="opacity:.8">(mid ' + mid + ')</span>';
+  }
+}
+
+function syncPacesInputs() {
+  state.raceFormat = normalizeRaceFormat(state.raceFormat);
+  state.paces = normalizePaces(state.paces);
+  updateRaceFormatToggleUI();
+  updateRaceDistanceHint();
+  ['swim', 'bike', 'run'].forEach(function (disc) {
+    var p = state.paces[disc];
+    var zoneEl = document.getElementById('pace-' + disc + '-zone');
+    var hrMinEl = document.getElementById('pace-' + disc + '-hrMin');
+    var hrMaxEl = document.getElementById('pace-' + disc + '-hrMax');
+    var speedMinEl = document.getElementById('pace-' + disc + '-speedMin');
+    var speedMaxEl = document.getElementById('pace-' + disc + '-speedMax');
+    var notesEl = document.getElementById('pace-' + disc + '-notes');
+    if (zoneEl) zoneEl.value = p.zone;
+    if (hrMinEl) hrMinEl.value = p.hrMin === '' ? '' : p.hrMin;
+    if (hrMaxEl) hrMaxEl.value = p.hrMax === '' ? '' : p.hrMax;
+    if (speedMinEl) speedMinEl.value = p.speedMin === '' ? '' : kmhToDisplaySpeed(p.speedMin);
+    if (speedMaxEl) speedMaxEl.value = p.speedMax === '' ? '' : kmhToDisplaySpeed(p.speedMax);
+    if (notesEl) notesEl.value = p.notes;
+    updatePaceEstimateUI(disc);
+  });
+}
+
+function renderPrintPaces() {
+  var el = document.getElementById('printPacesTable');
+  if (!el) return;
+  state.paces = normalizePaces(state.paces);
+  var rows = ['swim', 'bike', 'run'].map(function (disc) {
+    var p = state.paces[disc];
+    var label = disc.charAt(0).toUpperCase() + disc.slice(1);
+    var est = estimateDurationHours(disc);
+    var dur = '—';
+    if (est) {
+      dur = Math.abs(est.slowHours - est.fastHours) < 1 / 120
+        ? fmtHM(est.midHours)
+        : fmtHM(est.fastHours) + '–' + fmtHM(est.slowHours);
+    }
+    return '<tr>' +
+      '<td><strong>' + label + '</strong> · ' + escapeHtml(formatDistanceLabel(disc)) + '</td>' +
+      '<td>' + escapeHtml(p.zone || '—') + '</td>' +
+      '<td>' + escapeHtml(fmtHrRange(p)) + '</td>' +
+      '<td>' + escapeHtml(fmtSpeedRange(p)) + '</td>' +
+      '<td>' + escapeHtml(dur) + '</td>' +
+      '<td>' + escapeHtml(p.notes || '—') + '</td>' +
+    '</tr>';
+  }).join('');
+  el.innerHTML =
+    '<thead><tr><th>Discipline</th><th>Zone</th><th>Heart rate</th><th>Speed</th><th>Est. time</th><th>Notes</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody>';
+}
+
+function renderPacesTab() {
+  syncPacesInputs();
+  renderPrintPaces();
+}
+
+function applyPaceEstimatesToRaceTimes() {
+  state.paces = normalizePaces(state.paces);
+  var updated = [];
+  ['swim', 'bike', 'run'].forEach(function (disc) {
+    var est = estimateDurationHours(disc);
+    if (!est) return;
+    state.raceTimes[disc] = hoursToHM(est.midHours);
+    updated.push(disc + ' ' + fmtHM(est.midHours));
+  });
+  if (!updated.length) {
+    toast('Enter speed ranges first to estimate times.', 'error');
+    return;
+  }
+  regenerateBlocks();
+  syncSetupInputs();
+  renderLogTab();
+  renderSummaryTab();
+  renderLiveBar();
+  renderPrintPaces();
+  saveStateDebounced();
+  toast('Updated race times: ' + updated.join(', ') + '.', 'success');
+}
+
+document.getElementById('tab-paces').addEventListener('input', function (e) {
+  if (!e.target.matches('.pace-input')) return;
+  var disc = e.target.dataset.disc;
+  var field = e.target.dataset.field;
+  if (!disc || !field || !state.paces[disc]) return;
+  if (field === 'hrMin' || field === 'hrMax') {
+    var rawHr = e.target.value;
+    if (rawHr === '' || rawHr == null) state.paces[disc][field] = '';
+    else state.paces[disc][field] = Math.max(0, Math.min(250, Math.floor(Number(rawHr) || 0)));
+  } else if (field === 'speedMin' || field === 'speedMax') {
+    state.paces[disc][field] = displaySpeedToKmh(e.target.value);
+  } else if (field === 'notes') {
+    state.paces[disc][field] = String(e.target.value || '').slice(0, 240);
+  } else if (field === 'zone') {
+    state.paces[disc][field] = String(e.target.value || '').slice(0, 40);
+  }
+  updatePaceEstimateUI(disc);
+  renderPrintPaces();
+  saveStateDebounced();
+});
+
+document.getElementById('tab-paces').addEventListener('change', function (e) {
+  if (!e.target.matches('.pace-input')) return;
+  state.paces = normalizePaces(state.paces);
+  syncPacesInputs();
+  renderPrintPaces();
+  saveStateDebounced();
+});
+
+document.getElementById('tab-paces').addEventListener('click', function (e) {
+  var fmtBtn = e.target.closest('.race-format-btn');
+  if (fmtBtn) {
+    var next = normalizeRaceFormat(fmtBtn.dataset.format);
+    if (next === state.raceFormat) return;
+    state.raceFormat = next;
+    updateRaceFormatToggleUI();
+    updateRaceDistanceHint();
+    ['swim', 'bike', 'run'].forEach(updatePaceEstimateUI);
+    renderPrintPaces();
+    saveStateDebounced();
+    return;
+  }
+  if (e.target.id === 'applyPaceEstimatesBtn' || e.target.closest('#applyPaceEstimatesBtn')) {
+    applyPaceEstimatesToRaceTimes();
+  }
+});
+
+/* =========================================================================
+   UNITS TOGGLE
+   ========================================================================= */
+function updateUnitToggleUI() {
+  document.querySelectorAll('.unit-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.unit === state.units); });
+}
+document.querySelector('.unit-toggle').addEventListener('click', function (e) {
+  var btn = e.target.closest('.unit-btn');
+  if (!btn) return;
+  var newUnit = btn.dataset.unit;
+  if (newUnit === state.units) return;
+  state.units = newUnit;
+  updateUnitToggleUI();
+  syncSetupInputs();
+  renderProductsTab();
+  renderPacesTab();
+  renderLogTab();
+  renderSummaryTab();
+  renderLiveBar();
+  saveStateDebounced();
+});
+
+/* =========================================================================
+   SETUP TAB EVENTS
+   ========================================================================= */
+document.getElementById('tab-setup').addEventListener('change', function (e) {
+  if (e.target.matches('.time-input')) {
+    var seg = e.target.dataset.seg, part = e.target.dataset.part;
+    var val = Math.max(0, Math.floor(Number(e.target.value) || 0));
+    if (part === 'm') val = Math.min(59, val);
+    state.raceTimes[seg][part] = val;
+    e.target.value = val;
+    regenerateBlocks();
+    renderLogTab();
+    renderSummaryTab();
+    renderLiveBar();
+    renderRaceTimelineBar();
+    saveStateDebounced();
+  }
+  if (e.target.id === 'wake-time' || e.target.id === 'race-start-time') {
+    applyWakeOrStartTime(e.target, true);
+  }
+});
+document.getElementById('tab-setup').addEventListener('input', function (e) {
+  if (e.target.id === 'wake-time' || e.target.id === 'race-start-time') {
+    applyWakeOrStartTime(e.target, false);
+    return;
+  }
+  if (e.target.matches('.target-input')) {
+    var metric = e.target.dataset.metric, bound = e.target.dataset.bound;
+    var val = Math.max(0, Number(e.target.value) || 0);
+    if (metric === 'fluids') state.targets.fluids[bound] = displayToMl(val);
+    else state.targets[metric][bound] = val;
+    renderLogTab();
+    renderSummaryTab();
+    renderLiveBar();
+    saveStateDebounced();
+  }
+});
+
+function applyWakeOrStartTime(el, normalizeField) {
+  if (!el || !el.value) return;
+  if (el.id === 'wake-time') {
+    state.wakeTime = parseTimeInputValue(el.value, state.wakeTime);
+    if (normalizeField) el.value = fmtTimeInputValue(state.wakeTime);
+  } else {
+    state.startTime = parseTimeInputValue(el.value, state.startTime);
+    if (normalizeField) el.value = fmtTimeInputValue(state.startTime);
+  }
+  regenerateBlocks();
+  updateMorningWindowHint();
+  renderLogTab();
+  renderSummaryTab();
+  renderLiveBar();
+  renderRaceTimelineBar();
+  saveStateDebounced();
+}
+
+/* =========================================================================
+   PLAN NAME
+   ========================================================================= */
+document.getElementById('planNameInput').addEventListener('input', function (e) {
+  state.planName = e.target.value;
+  var disp = document.getElementById('planNameDisplay');
+  if (disp) disp.textContent = state.planName || 'My Race Plan';
+  saveStateDebounced();
+});
+
+/* =========================================================================
+   PRODUCT MODAL EVENTS
+   ========================================================================= */
+document.getElementById('addProductBtn').addEventListener('click', function () { openProductModal(null); });
+document.getElementById('modalCancelBtn').addEventListener('click', function () { closeProductModal(); });
+document.getElementById('productTableBody').addEventListener('click', function (e) {
+  var editBtn = e.target.closest('.edit-product-btn');
+  if (editBtn) { openProductModal(getProduct(editBtn.dataset.id)); return; }
+  var delBtn = e.target.closest('.delete-product-btn');
+  if (delBtn) { deleteProduct(delBtn.dataset.id); return; }
+});
+productModal.addEventListener('click', function (e) {
+  var rect = productModal.getBoundingClientRect();
+  var inDialog = rect.top <= e.clientY && e.clientY <= rect.top + rect.height && rect.left <= e.clientX && e.clientX <= rect.left + rect.width;
+  if (!inDialog) closeProductModal();
+});
+document.getElementById('productForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var name = document.getElementById('pf-name').value.trim();
+  var serving = document.getElementById('pf-serving').value.trim();
+  if (!name || !serving) { toast('Add a product name and serving size first.', 'error'); return; }
+  var carbs = Math.max(0, Number(document.getElementById('pf-carbs').value) || 0);
+  var sodium = Math.max(0, Number(document.getElementById('pf-sodium').value) || 0);
+  var fluidsDisplay = Math.max(0, Number(document.getElementById('pf-fluids').value) || 0);
+  var fluids = Math.round(displayToMl(fluidsDisplay) * 100) / 100;
+  var caffeine = Math.max(0, Number(document.getElementById('pf-caffeine').value) || 0);
+  var calories = Math.max(0, Number(document.getElementById('pf-calories').value) || 0);
+
+  if (editingProductId) {
+    var idx = products.findIndex(function (p) { return p.id === editingProductId; });
+    if (idx > -1) products[idx] = Object.assign({}, products[idx], { name: name, servingLabel: serving, carbs: carbs, sodium: sodium, fluids: fluids, caffeine: caffeine, calories: calories });
+  } else {
+    products.push(mkProduct(name, serving, carbs, sodium, fluids, caffeine, calories));
+  }
+  saveProducts();
+  closeProductModal();
+  renderProductsTab(); renderLogTab(); renderSummaryTab(); renderLiveBar();
+  toast('Product saved.', 'success');
+});
+
+document.getElementById('resetProductsBtn').addEventListener('click', function () {
+  if (!confirm('Reset the product library to the built-in defaults? Custom products you added will be removed. Log entries won\'t be affected, but entries using a custom product will show as unknown.')) return;
+  products = DEFAULT_PRODUCTS.map(function (p) { return Object.assign({}, p); });
+  saveProducts();
+  renderProductsTab(); renderLogTab(); renderSummaryTab(); renderLiveBar();
+  toast('Product library reset to defaults.', 'success');
+});
+
+/* =========================================================================
+   SAVED PLANS (named snapshots)
+   ========================================================================= */
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function loadSavedPlans() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEYS.savedPlans);
+    if (!raw) return [];
+    var parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn('Failed to load saved plans', e);
+    return [];
+  }
+}
+
+function persistSavedPlans(list) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.savedPlans, JSON.stringify(list));
+    return true;
+  } catch (e) {
+    console.warn('Failed to save plans library', e);
+    toast('Could not save — browser storage may be full or blocked.', 'error');
+    return false;
+  }
+}
+
+function loadActiveSavedId() {
+  try { return localStorage.getItem(STORAGE_KEYS.activeSavedId) || null; }
+  catch (e) { return null; }
+}
+
+function setActiveSavedId(id) {
+  activeSavedId = id || null;
+  try {
+    if (activeSavedId) localStorage.setItem(STORAGE_KEYS.activeSavedId, activeSavedId);
+    else localStorage.removeItem(STORAGE_KEYS.activeSavedId);
+  } catch (e) { /* ignore */ }
+}
+
+function buildPlanSnapshot(name) {
+  return {
+    id: uid().replace(/^p_/, 's_'),
+    name: name,
+    savedAt: new Date().toISOString(),
+    plan: {
+      planName: state.planName,
+      units: state.units,
+      raceFormat: normalizeRaceFormat(state.raceFormat),
+      wakeTime: deepClone(normalizeStartTime(state.wakeTime)),
+      startTime: deepClone(normalizeStartTime(state.startTime)),
+      raceTimes: deepClone(state.raceTimes),
+      targets: deepClone(state.targets),
+      paces: deepClone(normalizePaces(state.paces)),
+      log: deepClone(state.log)
+    },
+    products: deepClone(products)
+  };
+}
+
+function findSavedPlan(id) {
+  var list = loadSavedPlans();
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === id) return list[i];
+  }
+  return null;
+}
+
+function formatSavedDate(iso) {
+  try {
+    var d = new Date(iso);
+    if (!isFinite(d.getTime())) return iso;
+    return d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  } catch (e) { return iso; }
+}
+
+function saveCurrentPlan(opts) {
+  opts = opts || {};
+  var name = (opts.name != null ? opts.name : state.planName || '').trim();
+  if (!name) {
+    toast('Enter a plan name before saving.', 'error');
+    document.getElementById('planNameInput').focus();
+    return false;
+  }
+  var list = loadSavedPlans();
+  var existing = null;
+
+  if (opts.forceNew) {
+    existing = null;
+  } else if (opts.id) {
+    existing = list.find(function (p) { return p.id === opts.id; }) || null;
+  } else if (activeSavedId) {
+    existing = list.find(function (p) { return p.id === activeSavedId; }) || null;
+  }
+
+  /* Prefer updating same-named plan when quick-saving from header */
+  if (!existing && !opts.forceNew) {
+    existing = list.find(function (p) { return p.name.toLowerCase() === name.toLowerCase(); }) || null;
+  }
+
+  var snapshot = buildPlanSnapshot(name);
+  if (existing) {
+    if (!opts.skipConfirm) {
+      var ok = confirm('Overwrite saved plan "' + existing.name + '" with your current inputs?');
+      if (!ok) return false;
+    }
+    snapshot.id = existing.id;
+    var idx = list.findIndex(function (p) { return p.id === existing.id; });
+    list[idx] = snapshot;
+  } else {
+    list.unshift(snapshot);
+  }
+
+  if (!persistSavedPlans(list)) return false;
+  setActiveSavedId(snapshot.id);
+  state.planName = name;
+  document.getElementById('planNameInput').value = name;
+  var disp = document.getElementById('planNameDisplay');
+  if (disp) disp.textContent = name;
+  saveStateDebounced();
+  toast(existing ? 'Plan updated.' : 'Plan saved.', 'success');
+  return true;
+}
+
+function loadSavedPlanById(id) {
+  var entry = findSavedPlan(id);
+  if (!entry || !entry.plan) {
+    toast('That saved plan could not be found.', 'error');
+    return;
+  }
+  var ok = confirm('Load "' + entry.name + '"? This replaces your current draft and product library.');
+  if (!ok) return;
+
+  applyImportedPlan({
+    planName: entry.plan.planName || entry.name,
+    units: entry.plan.units,
+    raceFormat: entry.plan.raceFormat,
+    wakeTime: entry.plan.wakeTime,
+    morningHours: entry.plan.morningHours,
+    startTime: entry.plan.startTime,
+    raceTimes: entry.plan.raceTimes,
+    targets: entry.plan.targets,
+    paces: entry.plan.paces,
+    log: entry.plan.log,
+    products: entry.products
+  });
+  setActiveSavedId(entry.id);
+  toast('Loaded "' + entry.name + '".', 'success');
+  closeSavedPlansModal();
+}
+
+function deleteSavedPlanById(id) {
+  var entry = findSavedPlan(id);
+  if (!entry) return;
+  if (!confirm('Delete saved plan "' + entry.name + '"? This cannot be undone.')) return;
+  var list = loadSavedPlans().filter(function (p) { return p.id !== id; });
+  if (!persistSavedPlans(list)) return;
+  if (activeSavedId === id) setActiveSavedId(null);
+  renderSavedPlansList();
+  toast('Saved plan deleted.', 'success');
+}
+
+function renderSavedPlansList() {
+  var el = document.getElementById('savedPlansList');
+  if (!el) return;
+  var list = loadSavedPlans();
+  if (!list.length) {
+    el.innerHTML = '<div class="saved-empty">No saved plans yet. Use Save above to store this draft.</div>';
+    return;
+  }
+  el.innerHTML = list.map(function (p) {
+    var active = p.id === activeSavedId;
+    return '<div class="saved-item' + (active ? ' active' : '') + '" data-id="' + escapeHtml(p.id) + '">' +
+      '<div class="saved-item-meta">' +
+        '<div class="saved-item-name">' + escapeHtml(p.name) + (active ? ' · current' : '') + '</div>' +
+        '<div class="saved-item-date">Saved ' + escapeHtml(formatSavedDate(p.savedAt)) + '</div>' +
+      '</div>' +
+      '<div class="saved-item-actions">' +
+        '<button type="button" class="btn btn-small btn-primary load-saved-btn" data-id="' + escapeHtml(p.id) + '">Load</button>' +
+        '<button type="button" class="btn btn-small overwrite-saved-btn" data-id="' + escapeHtml(p.id) + '">Overwrite</button>' +
+        '<button type="button" class="btn btn-small btn-danger-text delete-saved-btn" data-id="' + escapeHtml(p.id) + '">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+var savedPlansModal = document.getElementById('savedPlansModal');
+
+function openSavedPlansModal() {
+  document.getElementById('saveAsNameInput').value = state.planName || '';
+  renderSavedPlansList();
+  if (typeof savedPlansModal.showModal === 'function') savedPlansModal.showModal();
+  else savedPlansModal.setAttribute('open', '');
+  document.getElementById('saveAsNameInput').focus();
+}
+
+function closeSavedPlansModal() {
+  if (typeof savedPlansModal.close === 'function') savedPlansModal.close();
+  else savedPlansModal.removeAttribute('open');
+}
+
+document.getElementById('savePlanBtn').addEventListener('click', function () {
+  saveCurrentPlan({ name: state.planName });
+});
+
+document.getElementById('savedPlansBtn').addEventListener('click', openSavedPlansModal);
+document.getElementById('savedPlansCloseBtn').addEventListener('click', closeSavedPlansModal);
+document.getElementById('saveAsConfirmBtn').addEventListener('click', function () {
+  var name = document.getElementById('saveAsNameInput').value.trim();
+  if (saveCurrentPlan({ name: name, forceNew: false, skipConfirm: false })) {
+    document.getElementById('saveAsNameInput').value = name;
+    renderSavedPlansList();
+  }
+});
+document.getElementById('saveAsNameInput').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    document.getElementById('saveAsConfirmBtn').click();
+  }
+});
+
+document.getElementById('savedPlansList').addEventListener('click', function (e) {
+  var loadBtn = e.target.closest('.load-saved-btn');
+  if (loadBtn) { loadSavedPlanById(loadBtn.dataset.id); return; }
+  var overwriteBtn = e.target.closest('.overwrite-saved-btn');
+  if (overwriteBtn) {
+    var entry = findSavedPlan(overwriteBtn.dataset.id);
+    if (!entry) return;
+    if (saveCurrentPlan({ id: entry.id, name: entry.name, skipConfirm: false })) {
+      renderSavedPlansList();
+    }
+    return;
+  }
+  var delBtn = e.target.closest('.delete-saved-btn');
+  if (delBtn) { deleteSavedPlanById(delBtn.dataset.id); return; }
+});
+
+savedPlansModal.addEventListener('click', function (e) {
+  var rect = savedPlansModal.getBoundingClientRect();
+  var inDialog = rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+    rect.left <= e.clientX && e.clientX <= rect.left + rect.width;
+  if (!inDialog) closeSavedPlansModal();
+});
+
+/* =========================================================================
+   EXPORT / IMPORT / PRINT
+   ========================================================================= */
+function exportPlan() {
+  var payload = {
+    meta: { app: 'Race Day Fueling Planner', version: 2, exportedAt: new Date().toISOString() },
+    planName: state.planName, units: state.units,
+    raceFormat: state.raceFormat,
+    wakeTime: state.wakeTime, startTime: state.startTime,
+    raceTimes: state.raceTimes, targets: state.targets,
+    paces: state.paces,
+    products: products, log: state.log
+  };
+  var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = slugify(state.planName || 'race-plan') + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  toast('Plan exported.', 'success');
+}
+
+function applyImportedPlan(data) {
+  products = (Array.isArray(data.products) && data.products.length) ? data.products : products;
+  saveProducts();
+  var newState = defaultState();
+  newState.planName = data.planName || 'Imported plan';
+  newState.units = data.units === 'imperial' ? 'imperial' : 'metric';
+  newState.raceFormat = normalizeRaceFormat(data.raceFormat);
+  newState.startTime = normalizeStartTime(data.startTime || newState.startTime);
+  if (data.wakeTime) {
+    newState.wakeTime = normalizeStartTime(data.wakeTime);
+  } else if (typeof data.morningHours === 'number' && isFinite(data.morningHours) && data.morningHours > 0) {
+    var gunMin = newState.startTime.h * 60 + newState.startTime.m;
+    var wakeMin = gunMin - Math.round(data.morningHours * 60);
+    while (wakeMin < 0) wakeMin += 24 * 60;
+    newState.wakeTime = { h: Math.floor(wakeMin / 60) % 24, m: wakeMin % 60 };
+  }
+  newState.raceTimes = Object.assign(newState.raceTimes, data.raceTimes || {});
+  newState.targets = {
+    carbs: Object.assign({}, newState.targets.carbs, (data.targets && data.targets.carbs) || {}),
+    sodium: Object.assign({}, newState.targets.sodium, (data.targets && data.targets.sodium) || {}),
+    fluids: Object.assign({}, newState.targets.fluids, (data.targets && data.targets.fluids) || {})
+  };
+  newState.paces = normalizePaces(data.paces);
+  var dLog = data.log || {};
+  newState.log.preRace.items = (dLog.preRace && Array.isArray(dLog.preRace.items)) ? dLog.preRace.items : [];
+  newState.log.t2.items = (dLog.t2 && Array.isArray(dLog.t2.items)) ? dLog.t2.items : [];
+  state = newState;
+  var morningHrs = getMorningDurationHours();
+  var swimHours = timeToHours(newState.raceTimes.swim);
+  var bikeHours = timeToHours(newState.raceTimes.bike);
+  var runHours = timeToHours(newState.raceTimes.run);
+  newState.log.morning = resizeSegmentBlocks(Array.isArray(dLog.morning) ? dLog.morning : [], blockDurationsForHours(morningHrs));
+  newState.log.swim = resizeSegmentBlocks(Array.isArray(dLog.swim) ? dLog.swim : [], blockDurationsForHours(swimHours));
+  newState.log.bike = resizeSegmentBlocks(Array.isArray(dLog.bike) ? dLog.bike : [], blockDurationsForHours(bikeHours));
+  newState.log.run = resizeSegmentBlocks(Array.isArray(dLog.run) ? dLog.run : [], blockDurationsForHours(runHours));
+  saveStateDebounced();
+  fullRenderAll();
+}
+
+function importPlanFromFile(file) {
+  var reader = new FileReader();
+  reader.onload = function () {
+    var data;
+    try { data = JSON.parse(reader.result); }
+    catch (e) { toast('That file isn\'t valid JSON — check it\'s the right export file.', 'error'); return; }
+    if (!data || !data.raceTimes || !data.targets || !data.log) {
+      toast('This file doesn\'t look like a race plan export.', 'error');
+      return;
+    }
+    var ok = confirm('Importing will replace your current plan and product library. Continue?');
+    if (!ok) return;
+    applyImportedPlan(data);
+    setActiveSavedId(null);
+    toast('Plan imported.', 'success');
+  };
+  reader.onerror = function () { toast('Could not read that file.', 'error'); };
+  reader.readAsText(file);
+}
+
+document.getElementById('exportBtn').addEventListener('click', exportPlan);
+document.getElementById('importBtn').addEventListener('click', function () { document.getElementById('importFileInput').click(); });
+document.getElementById('importFileInput').addEventListener('change', function (e) {
+  var file = e.target.files[0];
+  if (file) importPlanFromFile(file);
+  e.target.value = '';
+});
+
+function triggerPrint() {
+  var prevBtn = document.querySelector('.tab-btn.active');
+  var prevTab = prevBtn ? prevBtn.dataset.tab : 'setup';
+  switchTab('summary');
+  setTimeout(function () { window.print(); }, 60);
+  function restoreTab() {
+    switchTab(prevTab);
+    window.removeEventListener('afterprint', restoreTab);
+  }
+  window.addEventListener('afterprint', restoreTab);
+}
+document.getElementById('printBtn').addEventListener('click', triggerPrint);
+document.getElementById('printBtn2').addEventListener('click', triggerPrint);
+
+/* Prevent accidental value changes from mouse-wheel scrolling over a focused number input */
+document.addEventListener('wheel', function (e) {
+  if (document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement.type === 'number' && document.activeElement === e.target) {
+    document.activeElement.blur();
+  }
+}, { passive: true });
+
+/* =========================================================================
+   INIT
+   ========================================================================= */
+function fullRenderAll() {
+  syncSetupInputs();
+  updateUnitToggleUI();
+  renderProductsTab();
+  renderPacesTab();
+  renderLogTab();
+  renderSummaryTab();
+  renderLiveBar();
+  document.getElementById('planNameInput').value = state.planName;
+  var disp = document.getElementById('planNameDisplay');
+  if (disp) disp.textContent = state.planName || 'My Race Plan';
+}
+
+function init() {
+  products = loadProducts();
+  state = loadPlanState();
+  activeSavedId = loadActiveSavedId();
+  regenerateBlocks();
+  fullRenderAll();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
