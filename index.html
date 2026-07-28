@@ -557,33 +557,26 @@
   .servings-serving{ display:block; margin-top:2px; font-size:.88rem; color:var(--text-dim); font-weight:500; }
   .servings-empty{ padding:16px 12px; color:var(--text-dim); font-size:.92rem; }
 
-  /* ================= Paces tab ================= */
-  .paces-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; align-items:start; }
-  .pace-card .pace-fields{ display:flex; flex-direction:column; gap:12px; margin-top:14px; }
-  .pace-field{ display:flex; flex-direction:column; gap:6px; }
-  .pace-field label{ font-size:.88rem; font-weight:700; color:var(--text-dim); }
-  .pace-field input, .pace-field textarea{
-    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
-    border-radius:var(--radius-s); padding:9px 10px; font-size:.92rem; font-weight:500;
-    width:100%;
+  /* ================= Setup paces / speeds ================= */
+  .pace-time-row{ align-items:flex-start; }
+  .pace-inline{ flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
+  .pace-inline-label{ font-size:.88rem; font-weight:700; color:var(--text-dim); }
+  .pace-input{
+    width:100%; background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-s); padding:8px 10px; font-size:.95rem; font-weight:500;
   }
-  .pace-field textarea{ min-height:64px; resize:vertical; line-height:1.45; font-family:inherit; }
-  .pace-field input.mono{ font-family:var(--font-mono); }
+  .pace-input.mono{ font-family:var(--font-mono); text-align:center; }
   .pace-hr-row{ display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center; }
   .pace-hr-row span{ color:var(--text-dim); font-weight:700; text-align:center; }
-  .pace-card.swim{ border-top:3px solid var(--swim); }
-  .pace-card.bike{ border-top:3px solid var(--bike); }
-  .pace-card.run{ border-top:3px solid var(--run); }
   .pace-estimate{
-    margin-top:4px; padding:10px 12px; border-radius:var(--radius-s);
+    margin-top:2px; padding:8px 10px; border-radius:var(--radius-s);
     background:var(--panel-2); border:1px solid var(--border-soft);
-    font-size:.9rem; color:var(--text-dim);
+    font-size:.9rem; color:var(--text-dim); line-height:1.4;
   }
   .pace-estimate strong{ color:var(--text); font-family:var(--font-mono); }
-  .pace-hint{ display:block; margin-top:5px; font-size:.84rem; color:var(--text-dim); font-family:var(--font-mono); }
-  .pace-apply-row{ margin-top:14px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .pace-hint{ display:block; font-size:.84rem; color:var(--text-dim); font-family:var(--font-mono); }
   .pace-race-total{
-    margin-top:18px; padding:14px 16px; border-radius:var(--radius-m);
+    margin-top:16px; padding:14px 16px; border-radius:var(--radius-m);
     background:var(--panel-2); border:1px solid var(--border-soft);
   }
   .pace-race-total-label{
@@ -650,7 +643,6 @@
   /* ================= Responsive ================= */
   @media (max-width: 980px){
     .panel-grid{ grid-template-columns:1fr; }
-    .paces-grid{ grid-template-columns:1fr; }
     .stat-cards{ grid-template-columns:repeat(3,1fr); }
     .rate-row-cols.cols-3{ grid-template-columns:1fr 1fr; }
   }
@@ -744,8 +736,8 @@
     .servings-row{ grid-template-columns:56px 1fr; gap:10px; padding:10px; }
     .servings-breakdown{ display:inline; }
     .pace-hr-row{ grid-template-columns:1fr auto 1fr; gap:6px; }
-    .pace-apply-row{ flex-direction:column; align-items:stretch; }
-    .pace-apply-row .btn{ width:100%; justify-content:center; min-height:44px; }
+    .pace-time-row{ flex-direction:column; align-items:stretch; }
+    .pace-inline{ width:100%; }
     .race-format-toggle{ width:100%; }
     .race-format-btn{ flex:1; min-height:42px; }
     .pace-race-total{ padding:14px; }
@@ -857,10 +849,9 @@
     <nav class="tabs no-print" role="tablist" aria-label="Sections">
       <button type="button" class="tab-btn" data-tab="settings" id="tabbtn-settings" role="tab" aria-selected="false"><span class="tab-full">1. Settings</span><span class="tab-short">Settings</span></button>
       <button type="button" class="tab-btn active" data-tab="setup" id="tabbtn-setup" role="tab" aria-selected="true"><span class="tab-full">2. Race setup</span><span class="tab-short">Setup</span></button>
-      <button type="button" class="tab-btn" data-tab="paces" id="tabbtn-paces" role="tab" aria-selected="false"><span class="tab-full">3. Paces</span><span class="tab-short">Paces</span></button>
-      <button type="button" class="tab-btn" data-tab="products" id="tabbtn-products" role="tab" aria-selected="false"><span class="tab-full">4. Product library</span><span class="tab-short">Products</span></button>
-      <button type="button" class="tab-btn" data-tab="log" id="tabbtn-log" role="tab" aria-selected="false"><span class="tab-full">5. Nutrition log</span><span class="tab-short">Log</span></button>
-      <button type="button" class="tab-btn" data-tab="summary" id="tabbtn-summary" role="tab" aria-selected="false"><span class="tab-full">6. Summary</span><span class="tab-short">Summary</span></button>
+      <button type="button" class="tab-btn" data-tab="products" id="tabbtn-products" role="tab" aria-selected="false"><span class="tab-full">3. Product library</span><span class="tab-short">Products</span></button>
+      <button type="button" class="tab-btn" data-tab="log" id="tabbtn-log" role="tab" aria-selected="false"><span class="tab-full">4. Nutrition log</span><span class="tab-short">Log</span></button>
+      <button type="button" class="tab-btn" data-tab="summary" id="tabbtn-summary" role="tab" aria-selected="false"><span class="tab-full">5. Summary</span><span class="tab-short">Summary</span></button>
     </nav>
   </div>
 </div>
@@ -896,7 +887,12 @@
         <div class="card">
           <span class="eyebrow">Segment times</span>
           <h2 style="margin-top:8px;">Estimated segment times</h2>
-          <p class="card-hint">Set wake-up and race start to build the morning schedule, then enter goal times for each segment.</p>
+          <p class="card-hint">Set wake-up and race start, then enter pace/speed ranges for swim, bike, and run. Plan duration uses the longest estimate from each range. Transitions stay as fixed times.</p>
+          <div class="race-format-toggle" role="group" aria-label="Race distance">
+            <button type="button" class="race-format-btn active" data-format="full" id="raceFormatFull">Ironman 140.6</button>
+            <button type="button" class="race-format-btn" data-format="half" id="raceFormatHalf">70.3</button>
+          </div>
+          <p class="card-hint" id="raceDistanceHint" style="margin-top:10px;"></p>
           <div class="time-grid">
             <div class="time-row">
               <label class="seg-label"><span class="seg-dot" style="background:var(--accent);"></span>Wake-up</label>
@@ -910,13 +906,21 @@
                 <input type="time" id="race-start-time" class="start-time-input" aria-label="Race / swim start time">
               </div>
             </div>
-            <div class="time-row">
+
+            <div class="time-row pace-time-row">
               <label class="seg-label seg-swim"><span class="seg-dot"></span>Swim</label>
-              <div class="hm-inputs">
-                <input type="number" inputmode="numeric" id="time-swim-h" min="0" max="12" step="1" class="time-input" data-seg="swim" data-part="h" aria-label="Swim hours"><span>h</span>
-                <input type="number" inputmode="numeric" id="time-swim-m" min="0" max="59" step="1" class="time-input" data-seg="swim" data-part="m" aria-label="Swim minutes"><span>m</span>
+              <div class="pace-inline">
+                <label class="pace-inline-label" id="pace-swim-speed-label">Pace (min:sec / 100m)</label>
+                <div class="pace-hr-row">
+                  <input type="text" inputmode="numeric" id="pace-swim-speedMin" class="pace-input mono" data-disc="swim" data-field="speedMin" placeholder="2:05" aria-label="Swim slow pace min:sec per 100m" autocomplete="off" spellcheck="false">
+                  <span>–</span>
+                  <input type="text" inputmode="numeric" id="pace-swim-speedMax" class="pace-input mono" data-disc="swim" data-field="speedMax" placeholder="1:50" aria-label="Swim fast pace min:sec per 100m" autocomplete="off" spellcheck="false">
+                </div>
+                <span class="pace-hint" id="pace-swim-speed-hint"></span>
+                <div class="pace-estimate" id="pace-swim-estimate">Enter a pace range to set swim duration.</div>
               </div>
             </div>
+
             <div class="time-row">
               <label class="seg-label seg-t"><span class="seg-dot"></span>T1</label>
               <div class="hm-inputs">
@@ -924,13 +928,21 @@
                 <input type="number" inputmode="numeric" id="time-t1-m" min="0" max="59" step="1" class="time-input" data-seg="t1" data-part="m" aria-label="T1 minutes"><span>m</span>
               </div>
             </div>
-            <div class="time-row">
+
+            <div class="time-row pace-time-row">
               <label class="seg-label seg-bike"><span class="seg-dot"></span>Bike</label>
-              <div class="hm-inputs">
-                <input type="number" inputmode="numeric" id="time-bike-h" min="0" max="20" step="1" class="time-input" data-seg="bike" data-part="h" aria-label="Bike hours"><span>h</span>
-                <input type="number" inputmode="numeric" id="time-bike-m" min="0" max="59" step="1" class="time-input" data-seg="bike" data-part="m" aria-label="Bike minutes"><span>m</span>
+              <div class="pace-inline">
+                <label class="pace-inline-label" id="pace-bike-speed-label">Speed range</label>
+                <div class="pace-hr-row">
+                  <input type="number" inputmode="decimal" id="pace-bike-speedMin" class="pace-input mono" data-disc="bike" data-field="speedMin" min="0" step="0.1" placeholder="Slow" aria-label="Bike slow speed">
+                  <span>–</span>
+                  <input type="number" inputmode="decimal" id="pace-bike-speedMax" class="pace-input mono" data-disc="bike" data-field="speedMax" min="0" step="0.1" placeholder="Fast" aria-label="Bike fast speed">
+                </div>
+                <span class="pace-hint" id="pace-bike-speed-hint"></span>
+                <div class="pace-estimate" id="pace-bike-estimate">Enter a speed range to set bike duration.</div>
               </div>
             </div>
+
             <div class="time-row">
               <label class="seg-label seg-t"><span class="seg-dot"></span>T2</label>
               <div class="hm-inputs">
@@ -938,14 +950,28 @@
                 <input type="number" inputmode="numeric" id="time-t2-m" min="0" max="59" step="1" class="time-input" data-seg="t2" data-part="m" aria-label="T2 minutes"><span>m</span>
               </div>
             </div>
-            <div class="time-row">
+
+            <div class="time-row pace-time-row">
               <label class="seg-label seg-run"><span class="seg-dot"></span>Run</label>
-              <div class="hm-inputs">
-                <input type="number" inputmode="numeric" id="time-run-h" min="0" max="20" step="1" class="time-input" data-seg="run" data-part="h" aria-label="Run hours"><span>h</span>
-                <input type="number" inputmode="numeric" id="time-run-m" min="0" max="59" step="1" class="time-input" data-seg="run" data-part="m" aria-label="Run minutes"><span>m</span>
+              <div class="pace-inline">
+                <label class="pace-inline-label" id="pace-run-speed-label">Pace (min:sec / km)</label>
+                <div class="pace-hr-row">
+                  <input type="text" inputmode="numeric" id="pace-run-speedMin" class="pace-input mono" data-disc="run" data-field="speedMin" placeholder="6:45" aria-label="Run slow pace min:sec per km" autocomplete="off" spellcheck="false">
+                  <span>–</span>
+                  <input type="text" inputmode="numeric" id="pace-run-speedMax" class="pace-input mono" data-disc="run" data-field="speedMax" placeholder="6:00" aria-label="Run fast pace min:sec per km" autocomplete="off" spellcheck="false">
+                </div>
+                <span class="pace-hint" id="pace-run-speed-hint"></span>
+                <div class="pace-estimate" id="pace-run-estimate">Enter a pace range to set run duration.</div>
               </div>
             </div>
           </div>
+
+          <div class="pace-race-total" id="paceRaceTotalCard" style="margin-top:16px;">
+            <div class="pace-race-total-label">Approximate race time</div>
+            <div class="pace-race-total-value" id="paceRaceTotalValue">—</div>
+            <div class="pace-race-total-sub" id="paceRaceTotalSub">Swim + bike + run from your longest pace/speed estimates (transitions not included).</div>
+          </div>
+
           <p class="card-hint" style="margin-top:10px;" id="morningWindowHint">Morning fueling rows are created automatically from wake-up to race start.</p>
           <div class="timeline-wrap">
             <div class="timeline-bar" id="raceTimelineBar"></div>
@@ -1001,129 +1027,6 @@
       </div>
     </section>
 
-    <!-- ============ TAB: PACES ============ -->
-    <section id="tab-paces" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-paces">
-      <div class="card" style="margin-bottom:18px;">
-        <span class="eyebrow">Race effort</span>
-        <h2 style="margin-top:8px;">Paces &amp; heart-rate zones</h2>
-        <p class="card-hint">Enter a target speed range for each discipline. Approximate finish times are calculated from the course distance, and you can push those estimates into Race setup.</p>
-        <div class="race-format-toggle" role="group" aria-label="Race distance">
-          <button type="button" class="race-format-btn active" data-format="full" id="raceFormatFull">Full (140.6)</button>
-          <button type="button" class="race-format-btn" data-format="half" id="raceFormatHalf">Half (70.3)</button>
-        </div>
-        <p class="card-hint" id="raceDistanceHint" style="margin-top:10px;"></p>
-        <div class="pace-apply-row">
-          <button type="button" id="applyPaceEstimatesBtn" class="btn btn-primary">Apply speed estimates to race times</button>
-          <span class="card-hint" style="margin:0;" id="paceApplyHint">Uses the mid-range speed for each discipline.</span>
-        </div>
-      </div>
-      <div class="paces-grid">
-        <div class="card pace-card swim">
-          <span class="eyebrow swim">Swim</span>
-          <h2 style="margin-top:8px;">Swim targets</h2>
-          <div class="pace-fields">
-            <div class="pace-field">
-              <label for="pace-swim-zone">HR zone</label>
-              <input type="text" id="pace-swim-zone" class="pace-input" data-disc="swim" data-field="zone" maxlength="40" placeholder="e.g. Z2 / aerobic" autocomplete="off">
-            </div>
-            <div class="pace-field">
-              <label>Heart rate (bpm)</label>
-              <div class="pace-hr-row">
-                <input type="number" inputmode="numeric" id="pace-swim-hrMin" class="pace-input mono" data-disc="swim" data-field="hrMin" min="0" max="250" step="1" placeholder="Min" aria-label="Swim HR minimum">
-                <span>–</span>
-                <input type="number" inputmode="numeric" id="pace-swim-hrMax" class="pace-input mono" data-disc="swim" data-field="hrMax" min="0" max="250" step="1" placeholder="Max" aria-label="Swim HR maximum">
-              </div>
-            </div>
-            <div class="pace-field">
-              <label id="pace-swim-speed-label">Pace range (min:sec / 100m)</label>
-              <div class="pace-hr-row">
-                <input type="text" inputmode="numeric" id="pace-swim-speedMin" class="pace-input mono" data-disc="swim" data-field="speedMin" placeholder="2:05" aria-label="Swim slow pace min:sec per 100m" autocomplete="off" spellcheck="false">
-                <span>–</span>
-                <input type="text" inputmode="numeric" id="pace-swim-speedMax" class="pace-input mono" data-disc="swim" data-field="speedMax" placeholder="1:50" aria-label="Swim fast pace min:sec per 100m" autocomplete="off" spellcheck="false">
-              </div>
-              <span class="pace-hint" id="pace-swim-speed-hint"></span>
-            </div>
-            <div class="pace-estimate" id="pace-swim-estimate">Enter a pace range (e.g. 1:55) to estimate swim time.</div>
-            <div class="pace-field">
-              <label for="pace-swim-notes">Notes</label>
-              <textarea id="pace-swim-notes" class="pace-input" data-disc="swim" data-field="notes" maxlength="240" placeholder="Sighting, draft, start strategy…"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <div class="card pace-card bike">
-          <span class="eyebrow bike">Bike</span>
-          <h2 style="margin-top:8px;">Bike targets</h2>
-          <div class="pace-fields">
-            <div class="pace-field">
-              <label for="pace-bike-zone">HR zone</label>
-              <input type="text" id="pace-bike-zone" class="pace-input" data-disc="bike" data-field="zone" maxlength="40" placeholder="e.g. Z2–Z3" autocomplete="off">
-            </div>
-            <div class="pace-field">
-              <label>Heart rate (bpm)</label>
-              <div class="pace-hr-row">
-                <input type="number" inputmode="numeric" id="pace-bike-hrMin" class="pace-input mono" data-disc="bike" data-field="hrMin" min="0" max="250" step="1" placeholder="Min" aria-label="Bike HR minimum">
-                <span>–</span>
-                <input type="number" inputmode="numeric" id="pace-bike-hrMax" class="pace-input mono" data-disc="bike" data-field="hrMax" min="0" max="250" step="1" placeholder="Max" aria-label="Bike HR maximum">
-              </div>
-            </div>
-            <div class="pace-field">
-              <label id="pace-bike-speed-label">Speed range</label>
-              <div class="pace-hr-row">
-                <input type="number" inputmode="decimal" id="pace-bike-speedMin" class="pace-input mono" data-disc="bike" data-field="speedMin" min="0" step="0.1" placeholder="Slow" aria-label="Bike slow speed">
-                <span>–</span>
-                <input type="number" inputmode="decimal" id="pace-bike-speedMax" class="pace-input mono" data-disc="bike" data-field="speedMax" min="0" step="0.1" placeholder="Fast" aria-label="Bike fast speed">
-              </div>
-              <span class="pace-hint" id="pace-bike-speed-hint"></span>
-            </div>
-            <div class="pace-estimate" id="pace-bike-estimate">Enter a speed range to estimate bike time.</div>
-            <div class="pace-field">
-              <label for="pace-bike-notes">Notes</label>
-              <textarea id="pace-bike-notes" class="pace-input" data-disc="bike" data-field="notes" maxlength="240" placeholder="Stay aero, nutrition reminders, hills…"></textarea>
-            </div>
-          </div>
-        </div>
-
-        <div class="card pace-card run">
-          <span class="eyebrow run">Run</span>
-          <h2 style="margin-top:8px;">Run targets</h2>
-          <div class="pace-fields">
-            <div class="pace-field">
-              <label for="pace-run-zone">HR zone</label>
-              <input type="text" id="pace-run-zone" class="pace-input" data-disc="run" data-field="zone" maxlength="40" placeholder="e.g. Z2" autocomplete="off">
-            </div>
-            <div class="pace-field">
-              <label>Heart rate (bpm)</label>
-              <div class="pace-hr-row">
-                <input type="number" inputmode="numeric" id="pace-run-hrMin" class="pace-input mono" data-disc="run" data-field="hrMin" min="0" max="250" step="1" placeholder="Min" aria-label="Run HR minimum">
-                <span>–</span>
-                <input type="number" inputmode="numeric" id="pace-run-hrMax" class="pace-input mono" data-disc="run" data-field="hrMax" min="0" max="250" step="1" placeholder="Max" aria-label="Run HR maximum">
-              </div>
-            </div>
-            <div class="pace-field">
-              <label id="pace-run-speed-label">Pace range (min:sec / km)</label>
-              <div class="pace-hr-row">
-                <input type="text" inputmode="numeric" id="pace-run-speedMin" class="pace-input mono" data-disc="run" data-field="speedMin" placeholder="6:45" aria-label="Run slow pace min:sec per km" autocomplete="off" spellcheck="false">
-                <span>–</span>
-                <input type="text" inputmode="numeric" id="pace-run-speedMax" class="pace-input mono" data-disc="run" data-field="speedMax" placeholder="6:00" aria-label="Run fast pace min:sec per km" autocomplete="off" spellcheck="false">
-              </div>
-              <span class="pace-hint" id="pace-run-speed-hint"></span>
-            </div>
-            <div class="pace-estimate" id="pace-run-estimate">Enter a pace range (e.g. 6:25) to estimate run time.</div>
-            <div class="pace-field">
-              <label for="pace-run-notes">Notes</label>
-              <textarea id="pace-run-notes" class="pace-input" data-disc="run" data-field="notes" maxlength="240" placeholder="Walk aids, negative split, heat…"></textarea>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card pace-race-total" id="paceRaceTotalCard">
-        <div class="pace-race-total-label">Approximate race time</div>
-        <div class="pace-race-total-value" id="paceRaceTotalValue">—</div>
-        <div class="pace-race-total-sub" id="paceRaceTotalSub">Swim + bike + run from your pace/speed ranges (transitions not included).</div>
-      </div>
-    </section>
     <section id="tab-products" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-products">
       <div class="card">
         <div class="card-header-row">
@@ -1243,7 +1146,7 @@
       </div>
 
       <div class="print-only print-paces">
-        <h2>Paces &amp; heart-rate zones</h2>
+        <h2>Paces &amp; speeds</h2>
         <table class="print-paces-table" id="printPacesTable"></table>
       </div>
 
@@ -1354,7 +1257,7 @@ var state = null;
 var activeSavedId = null;
 
 function defaultPaceDiscipline() {
-  return { zone: '', hrMin: '', hrMax: '', speedMin: '', speedMax: '', notes: '' };
+  return { speedMin: '', speedMax: '' };
 }
 
 function defaultPaces() {
@@ -1383,11 +1286,7 @@ function normalizeOptionalNumber(val, min, max, decimals) {
 function normalizePaceDiscipline(src) {
   var d = defaultPaceDiscipline();
   if (!src || typeof src !== 'object') return d;
-  d.zone = String(src.zone != null ? src.zone : '').slice(0, 40);
-  d.notes = String(src.notes != null ? src.notes : '').slice(0, 240);
-  d.hrMin = normalizeOptionalNumber(src.hrMin, 0, 250, null);
-  d.hrMax = normalizeOptionalNumber(src.hrMax, 0, 250, null);
-  /* Speeds are always stored in km/h */
+  /* Speeds are always stored in km/h (legacy zone/HR/notes fields ignored) */
   d.speedMin = normalizeOptionalNumber(src.speedMin, 0, 100, 2);
   d.speedMax = normalizeOptionalNumber(src.speedMax, 0, 100, 2);
   return d;
@@ -2740,7 +2639,7 @@ document.querySelector('.tabs').addEventListener('click', function (e) {
 });
 
 /* =========================================================================
-   PACES TAB
+   SETUP PACES / SPEEDS
    ========================================================================= */
 var KM_PER_MILE = 1.609344;
 var RACE_DISTANCES_KM = {
@@ -2899,13 +2798,6 @@ function runPaceHint(speedKmh) {
   return fmtPaceSeconds((1 / speedKmh) * 3600) + ' /km';
 }
 
-function fmtHrRange(p) {
-  if (p.hrMin === '' && p.hrMax === '') return '—';
-  if (p.hrMin !== '' && p.hrMax !== '') return p.hrMin + '–' + p.hrMax + ' bpm';
-  if (p.hrMin !== '') return p.hrMin + '+ bpm';
-  return '≤' + p.hrMax + ' bpm';
-}
-
 function fmtPaceInputRange(p, disc) {
   var slowPace = kmhToDiscPaceMinutes(disc, p.speedMin);
   var fastPace = kmhToDiscPaceMinutes(disc, p.speedMax);
@@ -3001,22 +2893,19 @@ function updateRaceTotalEstimateUI() {
   var total = estimateTotalRaceHours();
   if (!total) {
     valueEl.textContent = '—';
-    subEl.textContent = 'Enter swim, bike, and run pace/speed ranges to estimate total race time (transitions not included).';
+    subEl.textContent = 'Enter swim, bike, and run pace/speed ranges to estimate total race time. Plan uses the longest estimate for each discipline (transitions not included).';
     return;
   }
-  if (Math.abs(total.slowHours - total.fastHours) < 1 / 120) {
-    valueEl.textContent = fmtHM(total.midHours);
-  } else {
-    valueEl.textContent = fmtHM(total.fastHours) + ' – ' + fmtHM(total.slowHours);
-  }
+  valueEl.textContent = fmtHM(total.slowHours);
   var breakdown = total.parts.map(function (p) {
-    return p.disc.charAt(0).toUpperCase() + p.disc.slice(1) + ' ' + fmtHM(p.est.midHours);
+    return p.disc.charAt(0).toUpperCase() + p.disc.slice(1) + ' ' + fmtHM(p.est.slowHours);
   }).join(' · ');
-  var note = 'Swim + bike + run (mid ' + fmtHM(total.midHours) + '). Transitions not included.';
+  var note = breakdown + '. Longest estimates · transitions not included.';
   if (!total.complete) {
     note = 'Partial: missing ' + total.missing.join(', ') + '. ' + breakdown + '. Transitions not included.';
-  } else {
-    note = breakdown + '. Transitions not included.';
+  }
+  if (total.complete && Math.abs(total.slowHours - total.fastHours) >= 1 / 120) {
+    note += ' Range ' + fmtHM(total.fastHours) + '–' + fmtHM(total.slowHours) + '.';
   }
   subEl.textContent = note;
 }
@@ -3038,7 +2927,7 @@ function updateRaceDistanceHint() {
   var el = document.getElementById('raceDistanceHint');
   if (!el) return;
   var fmt = normalizeRaceFormat(state.raceFormat);
-  el.textContent = (fmt === 'half' ? 'Half Ironman distances: ' : 'Full Ironman distances: ') +
+  el.textContent = (fmt === 'half' ? '70.3 distances: ' : 'Ironman 140.6 distances: ') +
     'Swim ' + formatDistanceLabel('swim') +
     ' · Bike ' + formatDistanceLabel('bike') +
     ' · Run ' + formatDistanceLabel('run');
@@ -3086,16 +2975,16 @@ function updatePaceEstimateUI(disc) {
   var est = estimateDurationHours(disc);
   if (!est) {
     el.innerHTML = usesPaceInput(disc)
-      ? 'Enter a pace range (e.g. ' + (disc === 'swim' ? '1:55' : '6:25') + ') to estimate ' + disc + ' time for ' + formatDistanceLabel(disc) + '.'
-      : 'Enter a speed range to estimate ' + disc + ' time for ' + formatDistanceLabel(disc) + '.';
+      ? 'Enter a pace range (e.g. ' + (disc === 'swim' ? '1:55' : '6:25') + ') to set ' + disc + ' duration for ' + formatDistanceLabel(disc) + '.'
+      : 'Enter a speed range to set ' + disc + ' duration for ' + formatDistanceLabel(disc) + '.';
     return;
   }
-  var mid = fmtHM(est.midHours);
+  var planDur = fmtHM(est.slowHours);
   if (Math.abs(est.slowHours - est.fastHours) < 1 / 120) {
-    el.innerHTML = formatDistanceLabel(disc) + ' ≈ <strong>' + mid + '</strong>';
+    el.innerHTML = formatDistanceLabel(disc) + ' plan duration <strong>' + planDur + '</strong>';
   } else {
-    el.innerHTML = formatDistanceLabel(disc) + ' ≈ <strong>' + fmtHM(est.fastHours) + ' – ' + fmtHM(est.slowHours) + '</strong>' +
-      ' <span style="opacity:.8">(mid ' + mid + ')</span>';
+    el.innerHTML = formatDistanceLabel(disc) + ' plan duration <strong>' + planDur + '</strong>' +
+      ' <span style="opacity:.8">(range ' + fmtHM(est.fastHours) + '–' + fmtHM(est.slowHours) + ')</span>';
   }
 }
 
@@ -3106,15 +2995,8 @@ function syncPacesInputs() {
   updateRaceDistanceHint();
   ['swim', 'bike', 'run'].forEach(function (disc) {
     var p = state.paces[disc];
-    var zoneEl = document.getElementById('pace-' + disc + '-zone');
-    var hrMinEl = document.getElementById('pace-' + disc + '-hrMin');
-    var hrMaxEl = document.getElementById('pace-' + disc + '-hrMax');
     var speedMinEl = document.getElementById('pace-' + disc + '-speedMin');
     var speedMaxEl = document.getElementById('pace-' + disc + '-speedMax');
-    var notesEl = document.getElementById('pace-' + disc + '-notes');
-    if (zoneEl) zoneEl.value = p.zone;
-    if (hrMinEl) hrMinEl.value = p.hrMin === '' ? '' : p.hrMin;
-    if (hrMaxEl) hrMaxEl.value = p.hrMax === '' ? '' : p.hrMax;
     if (usesPaceInput(disc)) {
       /* Normalize so left = slower pace, right = faster pace */
       var pairPace = orderedSpeedPair(p);
@@ -3141,7 +3023,6 @@ function syncPacesInputs() {
       if (speedMinEl) speedMinEl.value = p.speedMin === '' ? '' : kmhToDisplaySpeed(p.speedMin);
       if (speedMaxEl) speedMaxEl.value = p.speedMax === '' ? '' : kmhToDisplaySpeed(p.speedMax);
     }
-    if (notesEl) notesEl.value = p.notes;
     updatePaceEstimateUI(disc);
   });
   updateRaceTotalEstimateUI();
@@ -3155,123 +3036,58 @@ function renderPrintPaces() {
     var p = state.paces[disc];
     var label = disc.charAt(0).toUpperCase() + disc.slice(1);
     var est = estimateDurationHours(disc);
-    var dur = '—';
-    if (est) {
-      dur = Math.abs(est.slowHours - est.fastHours) < 1 / 120
-        ? fmtHM(est.midHours)
-        : fmtHM(est.fastHours) + '–' + fmtHM(est.slowHours);
-    }
+    var dur = est ? fmtHM(est.slowHours) : '—';
     return '<tr>' +
       '<td><strong>' + label + '</strong> · ' + escapeHtml(formatDistanceLabel(disc)) + '</td>' +
-      '<td>' + escapeHtml(p.zone || '—') + '</td>' +
-      '<td>' + escapeHtml(fmtHrRange(p)) + '</td>' +
       '<td>' + escapeHtml(fmtSpeedRange(p, disc)) + '</td>' +
       '<td>' + escapeHtml(dur) + '</td>' +
-      '<td>' + escapeHtml(p.notes || '—') + '</td>' +
     '</tr>';
   }).join('');
   var total = estimateTotalRaceHours();
-  var totalLabel = '—';
-  if (total) {
-    totalLabel = Math.abs(total.slowHours - total.fastHours) < 1 / 120
-      ? fmtHM(total.midHours)
-      : fmtHM(total.fastHours) + '–' + fmtHM(total.slowHours);
-    if (!total.complete) totalLabel += ' (partial)';
-  }
+  var totalLabel = total ? fmtHM(total.slowHours) + (total.complete ? '' : ' (partial)') : '—';
+  var fmt = normalizeRaceFormat(state.raceFormat);
   el.innerHTML =
-    '<thead><tr><th>Discipline</th><th>Zone</th><th>Heart rate</th><th>Speed</th><th>Est. time</th><th>Notes</th></tr></thead>' +
+    '<thead><tr><th>Discipline · ' + (fmt === 'half' ? '70.3' : 'Ironman 140.6') + '</th><th>Pace / speed</th><th>Plan duration</th></tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
-    '<tfoot><tr><td colspan="4"><strong>Race total</strong> (swim + bike + run)</td><td colspan="2"><strong>' +
+    '<tfoot><tr><td colspan="2"><strong>Race total</strong> (swim + bike + run, longest estimates)</td><td><strong>' +
       escapeHtml(totalLabel) + '</strong></td></tr></tfoot>';
 }
 
-function renderPacesTab() {
-  syncPacesInputs();
-  renderPrintPaces();
-}
-
-function applyPaceEstimatesToRaceTimes() {
+/** Apply longest pace/speed estimate to swim/bike/run race times. */
+function syncPaceDurationsToRaceTimes(opts) {
+  opts = opts || {};
   state.paces = normalizePaces(state.paces);
+  var changed = false;
   var updated = [];
   ['swim', 'bike', 'run'].forEach(function (disc) {
     var est = estimateDurationHours(disc);
     if (!est) return;
-    state.raceTimes[disc] = hoursToHM(est.midHours);
-    updated.push(disc + ' ' + fmtHM(est.midHours));
+    var hm = hoursToHM(est.slowHours);
+    if (state.raceTimes[disc].h !== hm.h || state.raceTimes[disc].m !== hm.m) {
+      state.raceTimes[disc] = hm;
+      changed = true;
+    }
+    updated.push(disc + ' ' + fmtHM(est.slowHours));
   });
-  if (!updated.length) {
-    toast('Enter speed ranges first to estimate times.', 'error');
-    return;
+  if (!changed && !opts.force) return updated.length > 0;
+  if (updated.length) {
+    regenerateBlocks();
+    syncSetupInputs();
+    renderLogTab();
+    renderSummaryTab();
+    renderLiveBar();
+    renderRaceTimelineBar();
+    renderPrintPaces();
+    if (opts.toast) toast('Plan durations set from longest pace estimates: ' + updated.join(', ') + '.', 'success');
   }
-  regenerateBlocks();
-  syncSetupInputs();
-  renderLogTab();
-  renderSummaryTab();
-  renderLiveBar();
-  renderPrintPaces();
-  saveStateDebounced();
-  toast('Updated race times: ' + updated.join(', ') + '.', 'success');
+  return updated.length > 0;
 }
 
-document.getElementById('tab-paces').addEventListener('input', function (e) {
-  if (!e.target.matches('.pace-input')) return;
-  var disc = e.target.dataset.disc;
-  var field = e.target.dataset.field;
-  if (!disc || !field || !state.paces[disc]) return;
-  if (field === 'hrMin' || field === 'hrMax') {
-    var rawHr = e.target.value;
-    if (rawHr === '' || rawHr == null) state.paces[disc][field] = '';
-    else state.paces[disc][field] = Math.max(0, Math.min(250, Math.floor(Number(rawHr) || 0)));
-  } else if (field === 'speedMin' || field === 'speedMax') {
-    if (usesPaceInput(disc)) {
-      var rawPace = String(e.target.value || '').trim();
-      if (!rawPace) {
-        state.paces[disc][field] = '';
-      } else {
-        var paceMin = parsePaceMmSs(rawPace);
-        /* Keep previous stored value while typing incomplete values like "1:" */
-        if (paceMin != null) state.paces[disc][field] = discPaceMinutesToKmh(disc, paceMin);
-      }
-    } else {
-      state.paces[disc][field] = displaySpeedToKmh(e.target.value);
-    }
-  } else if (field === 'notes') {
-    state.paces[disc][field] = String(e.target.value || '').slice(0, 240);
-  } else if (field === 'zone') {
-    state.paces[disc][field] = String(e.target.value || '').slice(0, 40);
-  }
-  updatePaceEstimateUI(disc);
-  updateRaceTotalEstimateUI();
-  renderPrintPaces();
-  saveStateDebounced();
-});
-
-document.getElementById('tab-paces').addEventListener('change', function (e) {
-  if (!e.target.matches('.pace-input')) return;
-  state.paces = normalizePaces(state.paces);
+function renderPacesTab() {
   syncPacesInputs();
+  syncPaceDurationsToRaceTimes();
   renderPrintPaces();
-  saveStateDebounced();
-});
-
-document.getElementById('tab-paces').addEventListener('click', function (e) {
-  var fmtBtn = e.target.closest('.race-format-btn');
-  if (fmtBtn) {
-    var next = normalizeRaceFormat(fmtBtn.dataset.format);
-    if (next === state.raceFormat) return;
-    state.raceFormat = next;
-    updateRaceFormatToggleUI();
-    updateRaceDistanceHint();
-    ['swim', 'bike', 'run'].forEach(updatePaceEstimateUI);
-    updateRaceTotalEstimateUI();
-    renderPrintPaces();
-    saveStateDebounced();
-    return;
-  }
-  if (e.target.id === 'applyPaceEstimatesBtn' || e.target.closest('#applyPaceEstimatesBtn')) {
-    applyPaceEstimatesToRaceTimes();
-  }
-});
+}
 
 /* =========================================================================
    UNITS TOGGLE
@@ -3298,7 +3114,30 @@ document.querySelector('.unit-toggle').addEventListener('click', function (e) {
 /* =========================================================================
    SETUP TAB EVENTS
    ========================================================================= */
+document.getElementById('tab-setup').addEventListener('click', function (e) {
+  var fmtBtn = e.target.closest('.race-format-btn');
+  if (!fmtBtn) return;
+  var next = normalizeRaceFormat(fmtBtn.dataset.format);
+  if (next === state.raceFormat) return;
+  state.raceFormat = next;
+  updateRaceFormatToggleUI();
+  updateRaceDistanceHint();
+  ['swim', 'bike', 'run'].forEach(updatePaceEstimateUI);
+  updateRaceTotalEstimateUI();
+  syncPaceDurationsToRaceTimes({ force: true });
+  renderPrintPaces();
+  saveStateDebounced();
+});
+
 document.getElementById('tab-setup').addEventListener('change', function (e) {
+  if (e.target.matches('.pace-input')) {
+    state.paces = normalizePaces(state.paces);
+    syncPacesInputs();
+    syncPaceDurationsToRaceTimes({ force: true });
+    renderPrintPaces();
+    saveStateDebounced();
+    return;
+  }
   if (e.target.matches('.time-input')) {
     var seg = e.target.dataset.seg, part = e.target.dataset.part;
     var val = Math.max(0, Math.floor(Number(e.target.value) || 0));
@@ -3317,6 +3156,31 @@ document.getElementById('tab-setup').addEventListener('change', function (e) {
   }
 });
 document.getElementById('tab-setup').addEventListener('input', function (e) {
+  if (e.target.matches('.pace-input')) {
+    var disc = e.target.dataset.disc;
+    var field = e.target.dataset.field;
+    if (!disc || !field || !state.paces[disc]) return;
+    if (field === 'speedMin' || field === 'speedMax') {
+      if (usesPaceInput(disc)) {
+        var rawPace = String(e.target.value || '').trim();
+        if (!rawPace) {
+          state.paces[disc][field] = '';
+        } else {
+          var paceMin = parsePaceMmSs(rawPace);
+          /* Keep previous stored value while typing incomplete values like "1:" */
+          if (paceMin != null) state.paces[disc][field] = discPaceMinutesToKmh(disc, paceMin);
+        }
+      } else {
+        state.paces[disc][field] = displaySpeedToKmh(e.target.value);
+      }
+      updatePaceEstimateUI(disc);
+      updateRaceTotalEstimateUI();
+      syncPaceDurationsToRaceTimes();
+      renderPrintPaces();
+      saveStateDebounced();
+    }
+    return;
+  }
   if (e.target.id === 'wake-time' || e.target.id === 'race-start-time') {
     applyWakeOrStartTime(e.target, false);
     return;
