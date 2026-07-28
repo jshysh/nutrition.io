@@ -106,7 +106,7 @@
 
   .app-header{
     display:flex; align-items:center; justify-content:space-between; gap:18px;
-    padding:16px 0 12px; flex-wrap:wrap;
+    padding:16px 0 4px; flex-wrap:wrap;
   }
   .brand{ display:flex; align-items:center; gap:12px; }
   .brand-mark{
@@ -119,14 +119,14 @@
   .brand-text h1{ font-size:1.12rem; letter-spacing:.01em; text-transform:uppercase; }
   .tagline{ margin:2px 0 0; font-size:.88rem; color:var(--text-dim); }
 
-  .header-controls{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .settings-controls{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px; }
   .plan-name-input{
-    background:var(--panel); border:1px solid var(--border); color:var(--text);
-    border-radius:var(--radius-s); padding:9px 12px; font-size:.9rem; width:200px;
+    background:var(--panel-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-s); padding:9px 12px; font-size:.9rem; width:min(100%, 280px);
   }
   .plan-name-input::placeholder{ color:var(--text-faint); }
 
-  .unit-toggle{ display:flex; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-s); overflow:hidden; }
+  .unit-toggle{ display:flex; background:var(--panel-2); border:1px solid var(--border); border-radius:var(--radius-s); overflow:hidden; }
   .unit-btn{
     background:transparent; border:none; color:var(--text-dim); padding:9px 14px; font-size:.88rem; font-weight:700;
   }
@@ -152,8 +152,10 @@
     display:grid;
     grid-template-columns:repeat(4, minmax(0, 1fr));
     gap:0;
-    border-top:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);
+    border:1px solid var(--border-soft);
+    border-radius:var(--radius-m);
     background:#0c0a09; overflow:hidden;
+    margin-bottom:18px;
   }
   .live-stat{
     min-width:0; padding:10px 12px;
@@ -600,17 +602,17 @@
     .app-shell{ padding-bottom:max(40px, env(safe-area-inset-bottom)); }
     .app-header{
       flex-direction:column; align-items:stretch; gap:10px;
-      padding:10px 0 8px;
+      padding:10px 0 0;
     }
     .brand{ gap:10px; }
     .brand-mark{ width:36px; height:36px; font-size:.75rem; }
     .brand-text h1{ font-size:.95rem; }
     .tagline{ font-size:.82rem; }
-    .header-controls{ justify-content:stretch; gap:8px; }
+    .settings-controls{ justify-content:stretch; gap:8px; }
     .plan-name-input{ width:100%; order:-1; font-size:16px; }
     .unit-toggle{ width:100%; }
     .unit-btn{ flex:1; min-height:42px; }
-    .header-controls .btn{
+    .settings-controls .btn{
       flex:1 1 calc(50% - 4px); justify-content:center; min-height:42px; padding:10px 12px;
     }
     .tabs{
@@ -692,7 +694,7 @@
     .stat-cards{ grid-template-columns:1fr; }
     .live-stat{ padding:8px 10px; }
     .live-value{ font-size:.92rem; }
-    .header-controls .btn{ flex:1 1 100%; }
+    .settings-controls .btn{ flex:1 1 100%; }
     .item-row{ grid-template-columns:minmax(0,1fr) 52px 26px; }
     .pace-race-total-value{ font-size:1.15rem; }
   }
@@ -777,35 +779,43 @@
           <p class="tagline" id="planNameDisplay">My Race Plan</p>
         </div>
       </div>
-      <div class="header-controls no-print">
-        <input type="text" id="planNameInput" class="plan-name-input" value="My Race Plan" aria-label="Plan name" placeholder="Plan name, e.g. Hot Day Plan" maxlength="60">
-        <div class="unit-toggle" role="group" aria-label="Units">
-          <button type="button" class="unit-btn active" data-unit="metric">Metric</button>
-          <button type="button" class="unit-btn" data-unit="imperial">Imperial</button>
-        </div>
-        <button type="button" id="savePlanBtn" class="btn btn-primary">Save plan</button>
-        <button type="button" id="savedPlansBtn" class="btn btn-ghost">Saved plans</button>
-        <button type="button" id="exportBtn" class="btn btn-ghost">Export JSON</button>
-        <button type="button" id="importBtn" class="btn btn-ghost">Import JSON</button>
-        <input type="file" id="importFileInput" accept="application/json" hidden>
-        <button type="button" id="printBtn" class="btn btn-accent">Print / save as PDF</button>
-      </div>
     </header>
 
-    <div class="live-bar no-print" id="liveBar" aria-live="polite"></div>
-
     <nav class="tabs no-print" role="tablist" aria-label="Sections">
-      <button type="button" class="tab-btn active" data-tab="setup" id="tabbtn-setup" role="tab" aria-selected="true"><span class="tab-full">1. Race setup</span><span class="tab-short">Setup</span></button>
-      <button type="button" class="tab-btn" data-tab="paces" id="tabbtn-paces" role="tab" aria-selected="false"><span class="tab-full">2. Paces</span><span class="tab-short">Paces</span></button>
-      <button type="button" class="tab-btn" data-tab="products" id="tabbtn-products" role="tab" aria-selected="false"><span class="tab-full">3. Product library</span><span class="tab-short">Products</span></button>
-      <button type="button" class="tab-btn" data-tab="log" id="tabbtn-log" role="tab" aria-selected="false"><span class="tab-full">4. Nutrition log</span><span class="tab-short">Log</span></button>
-      <button type="button" class="tab-btn" data-tab="summary" id="tabbtn-summary" role="tab" aria-selected="false"><span class="tab-full">5. Summary</span><span class="tab-short">Summary</span></button>
+      <button type="button" class="tab-btn" data-tab="settings" id="tabbtn-settings" role="tab" aria-selected="false"><span class="tab-full">1. Settings</span><span class="tab-short">Settings</span></button>
+      <button type="button" class="tab-btn active" data-tab="setup" id="tabbtn-setup" role="tab" aria-selected="true"><span class="tab-full">2. Race setup</span><span class="tab-short">Setup</span></button>
+      <button type="button" class="tab-btn" data-tab="paces" id="tabbtn-paces" role="tab" aria-selected="false"><span class="tab-full">3. Paces</span><span class="tab-short">Paces</span></button>
+      <button type="button" class="tab-btn" data-tab="products" id="tabbtn-products" role="tab" aria-selected="false"><span class="tab-full">4. Product library</span><span class="tab-short">Products</span></button>
+      <button type="button" class="tab-btn" data-tab="log" id="tabbtn-log" role="tab" aria-selected="false"><span class="tab-full">5. Nutrition log</span><span class="tab-short">Log</span></button>
+      <button type="button" class="tab-btn" data-tab="summary" id="tabbtn-summary" role="tab" aria-selected="false"><span class="tab-full">6. Summary</span><span class="tab-short">Summary</span></button>
     </nav>
   </div>
 </div>
 
 <div class="app-shell">
   <main>
+
+    <!-- ============ TAB: SETTINGS ============ -->
+    <section id="tab-settings" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-settings">
+      <div class="card">
+        <span class="eyebrow">Plan &amp; units</span>
+        <h2 style="margin-top:8px;">Settings</h2>
+        <p class="card-hint">Name this plan, choose units, and save or share your JSON.</p>
+        <div class="settings-controls no-print">
+          <input type="text" id="planNameInput" class="plan-name-input" value="My Race Plan" aria-label="Plan name" placeholder="Plan name, e.g. Hot Day Plan" maxlength="60">
+          <div class="unit-toggle" role="group" aria-label="Units">
+            <button type="button" class="unit-btn active" data-unit="metric">Metric</button>
+            <button type="button" class="unit-btn" data-unit="imperial">Imperial</button>
+          </div>
+          <button type="button" id="savePlanBtn" class="btn btn-primary">Save plan</button>
+          <button type="button" id="savedPlansBtn" class="btn btn-ghost">Saved plans</button>
+          <button type="button" id="exportBtn" class="btn btn-ghost">Export JSON</button>
+          <button type="button" id="importBtn" class="btn btn-ghost">Import JSON</button>
+          <input type="file" id="importFileInput" accept="application/json" hidden>
+          <button type="button" id="printBtn" class="btn btn-accent">Print / save as PDF</button>
+        </div>
+      </div>
+    </section>
 
     <!-- ============ TAB: SETUP ============ -->
     <section id="tab-setup" class="tab-panel active" role="tabpanel" aria-labelledby="tabbtn-setup">
@@ -1111,7 +1121,7 @@
         <p id="printSubtitle"></p>
       </div>
 
-      <div id="summaryTotals" class="stat-cards no-print"></div>
+      <div class="live-bar no-print" id="liveBar" aria-live="polite"></div>
 
       <div class="card no-print">
         <span class="eyebrow">Race day clock</span>
@@ -2590,13 +2600,7 @@ function renderSummaryTab() {
   var showMorning = totals.morningHours > 0;
   var tl = getRaceTimeline();
 
-  document.getElementById('summaryTotals').innerHTML =
-    statCardHTML('C', 'Total carbs', fmt(totals.overall.carbs, 0), 'g') +
-    statCardHTML('Na', 'Total sodium', fmt(totals.overall.sodium, 0), 'mg') +
-    statCardHTML('Fl', 'Total fluids', fmt(mlToDisplay(totals.overall.fluids), unit === 'oz' ? 1 : 0), unit) +
-    statCardHTML('Caf', 'Total caffeine', fmt(totals.overall.caffeine, 0), 'mg') +
-    statCardHTML('Kcal', 'Total calories', fmt(totals.overall.calories, 0), 'kcal');
-
+  renderLiveBar();
   renderScheduleList('summaryScheduleList');
   renderDisciplineTable(totals);
 
