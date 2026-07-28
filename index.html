@@ -507,6 +507,17 @@
   .pace-estimate strong{ color:var(--text); font-family:var(--font-mono); }
   .pace-hint{ display:block; margin-top:5px; font-size:.84rem; color:var(--text-dim); font-family:var(--font-mono); }
   .pace-apply-row{ margin-top:14px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .pace-race-total{
+    margin-top:18px; padding:14px 16px; border-radius:var(--radius-m);
+    background:var(--panel-2); border:1px solid var(--border-soft);
+  }
+  .pace-race-total-label{
+    font-size:.84rem; text-transform:uppercase; letter-spacing:.04em; font-weight:800; color:var(--text-dim);
+  }
+  .pace-race-total-value{
+    margin-top:6px; font-family:var(--font-mono); font-size:1.45rem; font-weight:800; color:var(--accent);
+  }
+  .pace-race-total-sub{ margin-top:4px; font-size:.9rem; color:var(--text-dim); }
   .race-format-toggle{ display:flex; background:var(--panel-2); border:1px solid var(--border); border-radius:var(--radius-s); overflow:hidden; margin-top:12px; width:fit-content; }
   .race-format-btn{
     background:transparent; border:none; color:var(--text-dim); padding:8px 14px; font-size:.88rem; font-weight:700;
@@ -918,9 +929,13 @@
           </div>
         </div>
       </div>
-    </section>
 
-    <!-- ============ TAB: PRODUCTS ============ -->
+      <div class="card pace-race-total" id="paceRaceTotalCard">
+        <div class="pace-race-total-label">Approximate race time</div>
+        <div class="pace-race-total-value" id="paceRaceTotalValue">—</div>
+        <div class="pace-race-total-sub" id="paceRaceTotalSub">Swim + bike + run from your pace/speed ranges (transitions not included).</div>
+      </div>
+    </section>
     <section id="tab-products" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-products">
       <div class="card">
         <div class="card-header-row">
@@ -2766,6 +2781,63 @@ function estimateDurationHours(disc) {
   };
 }
 
+/** Sum swim + bike + run estimates (no transitions). */
+function estimateTotalRaceHours() {
+  var discs = ['swim', 'bike', 'run'];
+  var totalFast = 0;
+  var totalSlow = 0;
+  var totalMid = 0;
+  var missing = [];
+  var parts = [];
+  discs.forEach(function (disc) {
+    var est = estimateDurationHours(disc);
+    if (!est) {
+      missing.push(disc);
+      return;
+    }
+    totalFast += est.fastHours;
+    totalSlow += est.slowHours;
+    totalMid += est.midHours;
+    parts.push({ disc: disc, est: est });
+  });
+  if (missing.length === discs.length) return null;
+  return {
+    fastHours: totalFast,
+    slowHours: totalSlow,
+    midHours: totalMid,
+    complete: missing.length === 0,
+    missing: missing,
+    parts: parts
+  };
+}
+
+function updateRaceTotalEstimateUI() {
+  var valueEl = document.getElementById('paceRaceTotalValue');
+  var subEl = document.getElementById('paceRaceTotalSub');
+  if (!valueEl || !subEl) return;
+  var total = estimateTotalRaceHours();
+  if (!total) {
+    valueEl.textContent = '—';
+    subEl.textContent = 'Enter swim, bike, and run pace/speed ranges to estimate total race time (transitions not included).';
+    return;
+  }
+  if (Math.abs(total.slowHours - total.fastHours) < 1 / 120) {
+    valueEl.textContent = fmtHM(total.midHours);
+  } else {
+    valueEl.textContent = fmtHM(total.fastHours) + ' – ' + fmtHM(total.slowHours);
+  }
+  var breakdown = total.parts.map(function (p) {
+    return p.disc.charAt(0).toUpperCase() + p.disc.slice(1) + ' ' + fmtHM(p.est.midHours);
+  }).join(' · ');
+  var note = 'Swim + bike + run (mid ' + fmtHM(total.midHours) + '). Transitions not included.';
+  if (!total.complete) {
+    note = 'Partial: missing ' + total.missing.join(', ') + '. ' + breakdown + '. Transitions not included.';
+  } else {
+    note = breakdown + '. Transitions not included.';
+  }
+  subEl.textContent = note;
+}
+
 function hoursToHM(hoursDecimal) {
   var totalMin = Math.max(0, Math.round(Number(hoursDecimal) * 60));
   return { h: Math.floor(totalMin / 60), m: totalMin % 60 };
@@ -2889,6 +2961,7 @@ function syncPacesInputs() {
     if (notesEl) notesEl.value = p.notes;
     updatePaceEstimateUI(disc);
   });
+  updateRaceTotalEstimateUI();
 }
 
 function renderPrintPaces() {
@@ -2914,9 +2987,19 @@ function renderPrintPaces() {
       '<td>' + escapeHtml(p.notes || '—') + '</td>' +
     '</tr>';
   }).join('');
+  var total = estimateTotalRaceHours();
+  var totalLabel = '—';
+  if (total) {
+    totalLabel = Math.abs(total.slowHours - total.fastHours) < 1 / 120
+      ? fmtHM(total.midHours)
+      : fmtHM(total.fastHours) + '–' + fmtHM(total.slowHours);
+    if (!total.complete) totalLabel += ' (partial)';
+  }
   el.innerHTML =
     '<thead><tr><th>Discipline</th><th>Zone</th><th>Heart rate</th><th>Speed</th><th>Est. time</th><th>Notes</th></tr></thead>' +
-    '<tbody>' + rows + '</tbody>';
+    '<tbody>' + rows + '</tbody>' +
+    '<tfoot><tr><td colspan="4"><strong>Race total</strong> (swim + bike + run)</td><td colspan="2"><strong>' +
+      escapeHtml(totalLabel) + '</strong></td></tr></tfoot>';
 }
 
 function renderPacesTab() {
@@ -2975,6 +3058,7 @@ document.getElementById('tab-paces').addEventListener('input', function (e) {
     state.paces[disc][field] = String(e.target.value || '').slice(0, 40);
   }
   updatePaceEstimateUI(disc);
+  updateRaceTotalEstimateUI();
   renderPrintPaces();
   saveStateDebounced();
 });
@@ -2996,6 +3080,7 @@ document.getElementById('tab-paces').addEventListener('click', function (e) {
     updateRaceFormatToggleUI();
     updateRaceDistanceHint();
     ['swim', 'bike', 'run'].forEach(updatePaceEstimateUI);
+    updateRaceTotalEstimateUI();
     renderPrintPaces();
     saveStateDebounced();
     return;
