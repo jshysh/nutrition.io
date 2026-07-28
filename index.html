@@ -973,7 +973,7 @@
             <div class="pace-race-total-label">Approximate race time</div>
             <div class="pace-race-total-value" id="paceRaceTotalValue">—</div>
             <div class="pace-race-total-finish" id="paceRaceTotalFinish"></div>
-            <div class="pace-race-total-sub" id="paceRaceTotalSub">Swim + bike + run from your pace/speed ranges (transitions not included in race time).</div>
+            <div class="pace-race-total-sub" id="paceRaceTotalSub">Swim + bike + run + transitions from your pace/speed ranges and T1/T2 times.</div>
           </div>
 
           <p class="card-hint" style="margin-top:10px;" id="morningWindowHint">Morning fueling rows are created automatically from wake-up to race start.</p>
@@ -2899,18 +2899,23 @@ function updateRaceTotalEstimateUI() {
   if (!total) {
     valueEl.textContent = '—';
     if (finishEl) finishEl.textContent = '';
-    subEl.textContent = 'Enter swim, bike, and run pace/speed ranges to estimate race time and finish. Plan duration uses the longest estimate per discipline.';
+    subEl.textContent = 'Enter swim, bike, and run pace/speed ranges to estimate race time and finish. Includes T1 and T2. Plan duration uses the longest estimate per discipline.';
     return;
   }
 
-  var same = Math.abs(total.slowHours - total.fastHours) < 1 / 120;
-  valueEl.textContent = same
-    ? fmtHM(total.slowHours)
-    : fmtHM(total.fastHours) + ' – ' + fmtHM(total.slowHours);
+  var t1 = timeToHours(state.raceTimes.t1);
+  var t2 = timeToHours(state.raceTimes.t2);
+  var transitions = t1 + t2;
+  var raceFast = total.fastHours + transitions;
+  var raceSlow = total.slowHours + transitions;
+  var same = Math.abs(raceSlow - raceFast) < 1 / 120;
 
-  var transitions = timeToHours(state.raceTimes.t1) + timeToHours(state.raceTimes.t2);
-  var finishFast = clockAtOffsetHours(total.fastHours + transitions);
-  var finishSlow = clockAtOffsetHours(total.slowHours + transitions);
+  valueEl.textContent = same
+    ? fmtHM(raceSlow)
+    : fmtHM(raceFast) + ' – ' + fmtHM(raceSlow);
+
+  var finishFast = clockAtOffsetHours(raceFast);
+  var finishSlow = clockAtOffsetHours(raceSlow);
   if (finishEl) {
     finishEl.textContent = same
       ? 'Finish ~' + finishSlow
@@ -2923,13 +2928,16 @@ function updateRaceTotalEstimateUI() {
       return label + ' ' + fmtHM(p.est.slowHours);
     }
     return label + ' ' + fmtHM(p.est.fastHours) + '–' + fmtHM(p.est.slowHours);
-  }).join(' · ');
+  });
+  breakdown.push('T1 ' + fmtHM(t1));
+  breakdown.push('T2 ' + fmtHM(t2));
+  var breakdownText = breakdown.join(' · ');
 
-  var note = breakdown + '.';
+  var note = breakdownText + '.';
   if (!total.complete) {
-    note = 'Partial: missing ' + total.missing.join(', ') + '. ' + breakdown + '.';
+    note = 'Partial: missing ' + total.missing.join(', ') + '. ' + breakdownText + '.';
   }
-  note += ' Plan uses longest estimates. Finish includes T1+T2; race time is swim+bike+run only.';
+  note += ' Plan uses longest pace estimates; race time includes transitions.';
   subEl.textContent = note;
 }
 
@@ -3067,12 +3075,16 @@ function renderPrintPaces() {
     '</tr>';
   }).join('');
   var total = estimateTotalRaceHours();
-  var totalLabel = total ? fmtHM(total.slowHours) + (total.complete ? '' : ' (partial)') : '—';
+  var transitions = timeToHours(state.raceTimes.t1) + timeToHours(state.raceTimes.t2);
+  var totalLabel = '—';
+  if (total) {
+    totalLabel = fmtHM(total.slowHours + transitions) + (total.complete ? '' : ' (partial)');
+  }
   var fmt = normalizeRaceFormat(state.raceFormat);
   el.innerHTML =
     '<thead><tr><th>Discipline · ' + (fmt === 'half' ? '70.3' : 'Ironman 140.6') + '</th><th>Pace / speed</th><th>Plan duration</th></tr></thead>' +
     '<tbody>' + rows + '</tbody>' +
-    '<tfoot><tr><td colspan="2"><strong>Race total</strong> (swim + bike + run, longest estimates)</td><td><strong>' +
+    '<tfoot><tr><td colspan="2"><strong>Race total</strong> (swim + bike + run + T1/T2, longest estimates)</td><td><strong>' +
       escapeHtml(totalLabel) + '</strong></td></tr></tfoot>';
 }
 
@@ -3172,6 +3184,8 @@ document.getElementById('tab-setup').addEventListener('change', function (e) {
     renderSummaryTab();
     renderLiveBar();
     renderRaceTimelineBar();
+    updateRaceTotalEstimateUI();
+    renderPrintPaces();
     saveStateDebounced();
   }
   if (e.target.id === 'wake-time' || e.target.id === 'race-start-time') {
@@ -3235,6 +3249,7 @@ function applyWakeOrStartTime(el, normalizeField) {
   renderSummaryTab();
   renderLiveBar();
   renderRaceTimelineBar();
+  updateRaceTotalEstimateUI();
   saveStateDebounced();
 }
 
