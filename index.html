@@ -557,6 +557,60 @@
   .servings-serving{ display:block; margin-top:2px; font-size:.88rem; color:var(--text-dim); font-weight:500; }
   .servings-empty{ padding:16px 12px; color:var(--text-dim); font-size:.92rem; }
 
+  /* ================= Pack / what I need ================= */
+  .pack-sections{ display:flex; flex-direction:column; gap:14px; }
+  .pack-card{
+    background:var(--panel); border:1px solid var(--border-soft); border-radius:var(--radius-l);
+    padding:18px 20px; box-shadow:var(--shadow-card);
+  }
+  .pack-card.swim{ border-top:3px solid var(--swim); }
+  .pack-card.bike{ border-top:3px solid var(--bike); }
+  .pack-card.run{ border-top:3px solid var(--run); }
+  .pack-card.morning{ border-top:3px solid var(--accent); }
+  .pack-card.t{ border-top:3px solid var(--t-color); }
+  .pack-card-head{ display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:8px 16px; margin-bottom:10px; }
+  .pack-card-title{ font-size:1.05rem; font-weight:800; }
+  .pack-card-meta{ font-family:var(--font-mono); font-size:.9rem; color:var(--text-dim); }
+  .pack-targets{
+    display:flex; flex-wrap:wrap; gap:8px 14px; margin-bottom:12px;
+    font-size:.9rem; color:var(--text-dim);
+  }
+  .pack-targets strong{ color:var(--text); font-family:var(--font-mono); font-weight:700; }
+  .pack-nutrients{
+    display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:8px; margin-bottom:12px;
+  }
+  .pack-nutrient{
+    background:var(--panel-2); border:1px solid var(--border-soft); border-radius:var(--radius-s);
+    padding:8px 10px; min-width:0;
+  }
+  .pack-nutrient-label{
+    display:block; font-size:.72rem; text-transform:uppercase; letter-spacing:.04em;
+    font-weight:800; color:var(--text-dim);
+  }
+  .pack-nutrient-value{
+    display:block; margin-top:2px; font-family:var(--font-mono); font-weight:800; font-size:.95rem; color:var(--text);
+    overflow-wrap:anywhere;
+  }
+  .pack-items{ display:flex; flex-direction:column; gap:0; border:1px solid var(--border-soft); border-radius:var(--radius-m); overflow:hidden; }
+  .pack-item{
+    display:grid; grid-template-columns:56px 1fr; gap:10px; align-items:start;
+    padding:10px 12px; border-bottom:1px solid var(--border-soft); font-size:.95rem;
+  }
+  .pack-item:last-child{ border-bottom:none; }
+  .pack-item:nth-child(even){ background:rgba(255,255,255,0.015); }
+  .pack-item-qty{ font-family:var(--font-mono); font-weight:800; color:var(--accent); }
+  .pack-item-name{ font-weight:700; }
+  .pack-item-serving{ display:block; margin-top:2px; font-size:.86rem; color:var(--text-dim); font-weight:500; }
+  .pack-empty{ padding:12px; color:var(--text-dim); font-size:.92rem; border:1px dashed var(--border-soft); border-radius:var(--radius-m); }
+  .print-pack{ display:none; }
+  @media (max-width: 760px){
+    .pack-nutrients{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .pack-card{ padding:16px; }
+  }
+  @media (max-width: 480px){
+    .pack-nutrients{ grid-template-columns:1fr 1fr; }
+  }
+
   /* ================= Setup paces / speeds ================= */
   .pace-time-row{ align-items:flex-start; }
   .pace-inline{ flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
@@ -824,6 +878,22 @@
     .print-servings .servings-breakdown{ color:#444 !important; font-weight:500; }
     .print-servings .servings-serving{ display:none; }
     .print-servings .servings-empty{ padding:4px; font-size:7pt; color:#444 !important; }
+    .print-pack{ display:block !important; margin:8px 0 !important; }
+    .print-pack h2{ font-size:9pt; margin:0 0 4px; color:#111 !important; }
+    .print-pack .pack-card{
+      box-shadow:none !important; border:1px solid #bbb !important; background:#fff !important;
+      border-radius:0 !important; padding:6px 8px !important; margin:0 0 6px !important;
+      border-top:2px solid #333 !important;
+    }
+    .print-pack .pack-card-title{ color:#111 !important; font-size:8pt; }
+    .print-pack .pack-card-meta, .print-pack .pack-targets, .print-pack .pack-item-serving{ color:#444 !important; font-size:7pt; }
+    .print-pack .pack-targets strong, .print-pack .pack-nutrient-value, .print-pack .pack-item-qty{ color:#111 !important; }
+    .print-pack .pack-nutrients{ grid-template-columns:repeat(5,1fr); gap:4px; margin-bottom:6px; }
+    .print-pack .pack-nutrient{ background:#f5f5f5 !important; border-color:#ccc !important; padding:3px 4px; }
+    .print-pack .pack-nutrient-label{ color:#444 !important; font-size:6pt; }
+    .print-pack .pack-items{ border-color:#ccc !important; }
+    .print-pack .pack-item{ padding:2px 4px; border-color:#ddd !important; font-size:7pt; }
+    .print-pack .pack-empty{ border-color:#ccc !important; color:#444 !important; font-size:7pt; padding:4px; }
     .print-paces{ display:block !important; margin:8px 0 !important; }
     .print-paces h2{
       font-size:9pt; margin:0 0 4px; color:#111 !important;
@@ -856,7 +926,8 @@
       <button type="button" class="tab-btn active" data-tab="setup" id="tabbtn-setup" role="tab" aria-selected="true"><span class="tab-full">2. Race setup</span><span class="tab-short">Setup</span></button>
       <button type="button" class="tab-btn" data-tab="products" id="tabbtn-products" role="tab" aria-selected="false"><span class="tab-full">3. Product library</span><span class="tab-short">Products</span></button>
       <button type="button" class="tab-btn" data-tab="log" id="tabbtn-log" role="tab" aria-selected="false"><span class="tab-full">4. Nutrition log</span><span class="tab-short">Log</span></button>
-      <button type="button" class="tab-btn" data-tab="summary" id="tabbtn-summary" role="tab" aria-selected="false"><span class="tab-full">5. Summary</span><span class="tab-short">Summary</span></button>
+      <button type="button" class="tab-btn" data-tab="pack" id="tabbtn-pack" role="tab" aria-selected="false"><span class="tab-full">5. What I need</span><span class="tab-short">Need</span></button>
+      <button type="button" class="tab-btn" data-tab="summary" id="tabbtn-summary" role="tab" aria-selected="false"><span class="tab-full">6. Summary</span><span class="tab-short">Summary</span></button>
     </nav>
   </div>
 </div>
@@ -1114,6 +1185,16 @@
       <div class="block-rows" id="logRunBlocks"></div>
     </section>
 
+    <!-- ============ TAB: PACK / WHAT I NEED ============ -->
+    <section id="tab-pack" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-pack">
+      <div class="card" style="margin-bottom:18px;">
+        <span class="eyebrow">Race-day packing</span>
+        <h2 style="margin-top:8px;">What I need — by section</h2>
+        <p class="card-hint">Everything to stage for each part of the day: products and quantities from your nutrition log, plus pace/HR targets and nutrient totals.</p>
+      </div>
+      <div id="packSections" class="pack-sections"></div>
+    </section>
+
     <!-- ============ TAB: SUMMARY ============ -->
     <section id="tab-summary" class="tab-panel" role="tabpanel" aria-labelledby="tabbtn-summary">
       <div class="print-only">
@@ -1167,6 +1248,11 @@
       <div class="print-only print-servings">
         <h2>Total servings <span id="printServingsStat"></span></h2>
         <div class="servings-list" id="printServingsList"></div>
+      </div>
+
+      <div class="print-only print-pack">
+        <h2>What I need — by section</h2>
+        <div id="printPackSections"></div>
       </div>
 
       <div class="print-only print-paces">
@@ -2143,8 +2229,144 @@ function renderServingTotals() {
   });
 }
 
+/** Build per-section packing info: products, nutrition, schedule, pace/HR. */
+function computeSectionNeeds() {
+  var totals = computeAllTotals();
+  var tl = getRaceTimeline();
+  var unit = fluidUnitLabel();
+  var sections = [
+    {
+      key: 'morning', title: 'Morning', tone: 'morning',
+      range: tl.morning.length ? tl.morning[0].startClock + '–' + tl.gunClock : '',
+      duration: totals.morningHours, totals: totals.morning, disc: null
+    },
+    {
+      key: 'swim', title: 'Swim', tone: 'swim',
+      range: tl.swim.range, duration: totals.swimHours, totals: totals.swim, disc: 'swim'
+    },
+    {
+      key: 'preRace', title: 'T1', tone: 't',
+      range: tl.t1.range, duration: totals.t1Hours, totals: totals.preRace, disc: null
+    },
+    {
+      key: 'bike', title: 'Bike', tone: 'bike',
+      range: tl.bike.range, duration: totals.bikeHours, totals: totals.bike, disc: 'bike'
+    },
+    {
+      key: 't2', title: 'T2', tone: 't',
+      range: tl.t2.range, duration: totals.t2Hours, totals: totals.t2, disc: null
+    },
+    {
+      key: 'run', title: 'Run', tone: 'run',
+      range: tl.run.range, duration: totals.runHours, totals: totals.run, disc: 'run'
+    }
+  ];
+
+  var bySection = {};
+  labeledLogItemGroups().forEach(function (section) {
+    var byId = {};
+    section.groups.forEach(function (items) {
+      items.forEach(function (it) {
+        var id = it.productId;
+        var q = Number(it.qty) || 0;
+        if (q <= 0) return;
+        if (!byId[id]) byId[id] = 0;
+        byId[id] += q;
+      });
+    });
+    bySection[section.key] = Object.keys(byId).map(function (id) {
+      var p = getProduct(id);
+      return {
+        productId: id,
+        qty: byId[id],
+        name: p ? p.name : 'Unknown product',
+        servingLabel: p ? p.servingLabel : '',
+        known: !!p
+      };
+    }).sort(function (a, b) {
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+  });
+
+  return sections.map(function (s) {
+    var items = bySection[s.key] || [];
+    var pace = null;
+    if (s.disc && state.paces && state.paces[s.disc]) {
+      var p = state.paces[s.disc];
+      pace = {
+        hr: fmtHrRange(p),
+        speed: fmtSpeedRange(p, s.disc)
+      };
+    }
+    var t = s.totals || { carbs: 0, sodium: 0, fluids: 0, caffeine: 0, calories: 0 };
+    return {
+      key: s.key,
+      title: s.title,
+      tone: s.tone,
+      range: s.range || '',
+      durationLabel: s.duration > 0 ? fmtHM(s.duration) : '',
+      pace: pace,
+      items: items,
+      nutrients: [
+        { label: 'Carbs', value: fmt(t.carbs, 0) + 'g' },
+        { label: 'Sodium', value: fmt(t.sodium, 0) + 'mg' },
+        { label: 'Fluids', value: fmt(mlToDisplay(t.fluids), unit === 'oz' ? 1 : 0) + unit },
+        { label: 'Caffeine', value: fmt(t.caffeine, 0) + 'mg' },
+        { label: 'Calories', value: fmt(t.calories, 0) }
+      ],
+      hasContent: items.length > 0 || (t.carbs + t.sodium + t.fluids + t.caffeine + t.calories) > 0 || !!(pace && (pace.hr !== '—' || pace.speed !== '—'))
+    };
+  });
+}
+
+function packSectionHTML(sec) {
+  var metaParts = [];
+  if (sec.range) metaParts.push(sec.range);
+  if (sec.durationLabel) metaParts.push(sec.durationLabel);
+  var targets = '';
+  if (sec.pace) {
+    var bits = [];
+    if (sec.pace.hr && sec.pace.hr !== '—') bits.push('HR <strong>' + escapeHtml(sec.pace.hr) + '</strong>');
+    if (sec.pace.speed && sec.pace.speed !== '—') bits.push('Pace <strong>' + escapeHtml(sec.pace.speed) + '</strong>');
+    if (bits.length) targets = '<div class="pack-targets">' + bits.join('<span aria-hidden="true"> · </span>') + '</div>';
+  }
+  var nutrients = '<div class="pack-nutrients">' + sec.nutrients.map(function (n) {
+    return '<div class="pack-nutrient"><span class="pack-nutrient-label">' + escapeHtml(n.label) +
+      '</span><span class="pack-nutrient-value">' + escapeHtml(n.value) + '</span></div>';
+  }).join('') + '</div>';
+  var itemsHtml;
+  if (!sec.items.length) {
+    itemsHtml = '<p class="pack-empty">No products logged for this section yet.</p>';
+  } else {
+    itemsHtml = '<div class="pack-items">' + sec.items.map(function (it) {
+      return '<div class="pack-item' + (it.known ? '' : ' item-row-warning') + '">' +
+        '<span class="pack-item-qty">' + fmtQty(it.qty) + '×</span>' +
+        '<span><span class="pack-item-name">' + escapeHtml(it.name) + '</span>' +
+          (it.servingLabel ? '<span class="pack-item-serving">' + escapeHtml(it.servingLabel) + '</span>' : '') +
+        '</span></div>';
+    }).join('') + '</div>';
+  }
+  return '<article class="pack-card ' + escapeHtml(sec.tone) + '">' +
+    '<div class="pack-card-head">' +
+      '<div class="pack-card-title">' + escapeHtml(sec.title) + '</div>' +
+      (metaParts.length ? '<div class="pack-card-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' : '') +
+    '</div>' +
+    targets + nutrients + itemsHtml +
+  '</article>';
+}
+
+function renderPackTab() {
+  var sections = computeSectionNeeds();
+  var html = sections.map(packSectionHTML).join('');
+  var el = document.getElementById('packSections');
+  var printEl = document.getElementById('printPackSections');
+  if (el) el.innerHTML = html;
+  if (printEl) printEl.innerHTML = html;
+}
+
 function renderLogTab() {
   renderServingTotals();
+  renderPackTab();
   var morningHours = getMorningDurationHours();
   var morningHeading = document.getElementById('morningSegHeading');
   var morningContainer = document.getElementById('logMorningBlocks');
@@ -3235,6 +3457,7 @@ document.getElementById('tab-setup').addEventListener('input', function (e) {
       var rawHr = e.target.value;
       if (rawHr === '' || rawHr == null) state.paces[disc][field] = '';
       else state.paces[disc][field] = Math.max(0, Math.min(250, Math.floor(Number(rawHr) || 0)));
+      renderPackTab();
       renderPrintPaces();
       saveStateDebounced();
       return;
