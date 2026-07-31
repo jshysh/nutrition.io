@@ -593,19 +593,31 @@
   }
   .pack-items{ display:flex; flex-direction:column; gap:0; border:1px solid var(--border-soft); border-radius:var(--radius-m); overflow:hidden; }
   .pack-item{
-    display:grid; grid-template-columns:56px 1fr; gap:10px; align-items:start;
+    display:grid; grid-template-columns:28px 52px minmax(0,1fr); gap:10px; align-items:start;
     padding:10px 12px; border-bottom:1px solid var(--border-soft); font-size:.95rem;
+    cursor:pointer; user-select:none;
   }
   .pack-item:last-child{ border-bottom:none; }
   .pack-item:nth-child(even){ background:rgba(255,255,255,0.015); }
+  .pack-item:hover{ background:rgba(255,255,255,0.04); }
+  .pack-item.packed{ opacity:0.72; }
+  .pack-item.packed .pack-item-name{ text-decoration:line-through; color:var(--text-dim); }
+  .pack-check{
+    width:22px; height:22px; margin-top:2px; accent-color:var(--accent); cursor:pointer; flex:none;
+  }
   .pack-item-qty{ font-family:var(--font-mono); font-weight:800; color:var(--accent); }
   .pack-item-name{ font-weight:700; }
   .pack-item-serving{ display:block; margin-top:2px; font-size:.86rem; color:var(--text-dim); font-weight:500; }
+  .pack-progress{ font-family:var(--font-mono); font-size:.88rem; color:var(--text-dim); font-weight:600; }
+  .pack-progress.done{ color:var(--green); }
+  .pack-card-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
   .pack-empty{ padding:12px; color:var(--text-dim); font-size:.92rem; border:1px dashed var(--border-soft); border-radius:var(--radius-m); }
   .print-pack{ display:none; }
   @media (max-width: 760px){
     .pack-nutrients{ grid-template-columns:repeat(2, minmax(0,1fr)); }
     .pack-card{ padding:16px; }
+    .pack-item{ grid-template-columns:28px 48px minmax(0,1fr); min-height:44px; align-items:center; }
+    .pack-check{ width:24px; height:24px; }
   }
   @media (max-width: 480px){
     .pack-nutrients{ grid-template-columns:1fr 1fr; }
@@ -892,7 +904,10 @@
     .print-pack .pack-nutrient{ background:#f5f5f5 !important; border-color:#ccc !important; padding:3px 4px; }
     .print-pack .pack-nutrient-label{ color:#444 !important; font-size:6pt; }
     .print-pack .pack-items{ border-color:#ccc !important; }
-    .print-pack .pack-item{ padding:2px 4px; border-color:#ddd !important; font-size:7pt; }
+    .print-pack .pack-item{ padding:2px 4px; border-color:#ddd !important; font-size:7pt; grid-template-columns:16px 40px 1fr; }
+    .print-pack .pack-check{ width:12px; height:12px; }
+    .print-pack .pack-item.packed .pack-item-name{ text-decoration:line-through; }
+    .print-pack .pack-card-actions{ display:none !important; }
     .print-pack .pack-empty{ border-color:#ccc !important; color:#444 !important; font-size:7pt; padding:4px; }
     .print-paces{ display:block !important; margin:8px 0 !important; }
     .print-paces h2{
@@ -1190,7 +1205,10 @@
       <div class="card" style="margin-bottom:18px;">
         <span class="eyebrow">Race-day packing</span>
         <h2 style="margin-top:8px;">What I need — by section</h2>
-        <p class="card-hint">Everything to stage for each part of the day: products and quantities from your nutrition log, plus pace/HR targets and nutrient totals.</p>
+        <p class="card-hint">Checklist of everything to stage for each part of the day. Tap an item to mark it packed — progress saves with your plan.</p>
+        <div class="pack-card-actions no-print">
+          <button type="button" id="packClearAllBtn" class="btn btn-ghost btn-small">Clear all checks</button>
+        </div>
       </div>
       <div id="packSections" class="pack-sections"></div>
     </section>
@@ -1414,6 +1432,46 @@ function normalizePaces(src) {
   };
 }
 
+function normalizePacked(src) {
+  var out = {};
+  if (!src || typeof src !== 'object' || Array.isArray(src)) return out;
+  Object.keys(src).forEach(function (k) {
+    if (src[k]) out[String(k)] = true;
+  });
+  return out;
+}
+
+function packItemKey(sectionKey, productId) {
+  return sectionKey + '|' + productId;
+}
+
+function isPacked(sectionKey, productId) {
+  return !!(state.packed && state.packed[packItemKey(sectionKey, productId)]);
+}
+
+function setPacked(sectionKey, productId, packed) {
+  if (!state.packed) state.packed = {};
+  var key = packItemKey(sectionKey, productId);
+  if (packed) state.packed[key] = true;
+  else delete state.packed[key];
+}
+
+function prunePackedChecklist() {
+  if (!state.packed) { state.packed = {}; return; }
+  var valid = {};
+  labeledLogItemGroups().forEach(function (section) {
+    section.groups.forEach(function (items) {
+      items.forEach(function (it) {
+        var q = Number(it.qty) || 0;
+        if (q <= 0 || !it.productId) return;
+        var key = packItemKey(section.key, it.productId);
+        if (state.packed[key]) valid[key] = true;
+      });
+    });
+  });
+  state.packed = valid;
+}
+
 function normalizeRaceFormat(fmt) {
   return fmt === 'half' ? 'half' : 'full';
 }
@@ -1438,6 +1496,7 @@ function defaultState() {
       fluids: { min: 500, max: 1000 } /* always stored internally in ml */
     },
     paces: defaultPaces(),
+    packed: {},
     log: {
       morning: [],
       swim: [],
@@ -1512,6 +1571,7 @@ function loadPlanState() {
         if (!parsed.planName) parsed.planName = 'My Race Plan';
         parsed.raceFormat = normalizeRaceFormat(parsed.raceFormat);
         parsed.paces = normalizePaces(parsed.paces);
+        parsed.packed = normalizePacked(parsed.packed);
         return parsed;
       }
     }
@@ -2323,6 +2383,14 @@ function packSectionHTML(sec) {
   var metaParts = [];
   if (sec.range) metaParts.push(sec.range);
   if (sec.durationLabel) metaParts.push(sec.durationLabel);
+  var packedCount = 0;
+  sec.items.forEach(function (it) { if (it.packed) packedCount++; });
+  var progress = '';
+  if (sec.items.length) {
+    var done = packedCount === sec.items.length;
+    progress = '<span class="pack-progress' + (done ? ' done' : '') + '">' +
+      packedCount + '/' + sec.items.length + ' packed</span>';
+  }
   var targets = '';
   if (sec.pace) {
     var bits = [];
@@ -2338,31 +2406,102 @@ function packSectionHTML(sec) {
   if (!sec.items.length) {
     itemsHtml = '<p class="pack-empty">No products logged for this section yet.</p>';
   } else {
-    itemsHtml = '<div class="pack-items">' + sec.items.map(function (it) {
-      return '<div class="pack-item' + (it.known ? '' : ' item-row-warning') + '">' +
+    itemsHtml = '<div class="pack-items" role="list">' + sec.items.map(function (it) {
+      var id = 'pack-' + sec.key + '-' + it.productId;
+      return '<label class="pack-item' + (it.packed ? ' packed' : '') + (it.known ? '' : ' item-row-warning') +
+        '" role="listitem" for="' + escapeHtml(id) + '">' +
+        '<input type="checkbox" class="pack-check" id="' + escapeHtml(id) + '"' +
+          ' data-section="' + escapeHtml(sec.key) + '" data-product="' + escapeHtml(it.productId) + '"' +
+          (it.packed ? ' checked' : '') + ' aria-label="Packed ' + escapeHtml(it.name) + '">' +
         '<span class="pack-item-qty">' + fmtQty(it.qty) + '×</span>' +
         '<span><span class="pack-item-name">' + escapeHtml(it.name) + '</span>' +
           (it.servingLabel ? '<span class="pack-item-serving">' + escapeHtml(it.servingLabel) + '</span>' : '') +
-        '</span></div>';
+        '</span></label>';
     }).join('') + '</div>';
   }
-  return '<article class="pack-card ' + escapeHtml(sec.tone) + '">' +
+  var actions = '';
+  if (sec.items.length) {
+    actions = '<div class="pack-card-actions no-print">' +
+      '<button type="button" class="btn btn-ghost btn-small pack-mark-all" data-section="' + escapeHtml(sec.key) + '">Mark all packed</button>' +
+      '<button type="button" class="btn btn-ghost btn-small pack-clear-section" data-section="' + escapeHtml(sec.key) + '">Clear section</button>' +
+    '</div>';
+  }
+  return '<article class="pack-card ' + escapeHtml(sec.tone) + '" data-section="' + escapeHtml(sec.key) + '">' +
     '<div class="pack-card-head">' +
       '<div class="pack-card-title">' + escapeHtml(sec.title) + '</div>' +
-      (metaParts.length ? '<div class="pack-card-meta">' + escapeHtml(metaParts.join(' · ')) + '</div>' : '') +
+      '<div class="pack-card-meta">' +
+        escapeHtml(metaParts.join(' · ')) +
+        (metaParts.length && progress ? ' · ' : '') + progress +
+      '</div>' +
     '</div>' +
-    targets + nutrients + itemsHtml +
+    targets + nutrients + itemsHtml + actions +
   '</article>';
 }
 
 function renderPackTab() {
-  var sections = computeSectionNeeds();
+  prunePackedChecklist();
+  var sections = computeSectionNeeds().map(function (sec) {
+    sec.items = sec.items.map(function (it) {
+      return Object.assign({}, it, { packed: isPacked(sec.key, it.productId) });
+    });
+    return sec;
+  });
   var html = sections.map(packSectionHTML).join('');
   var el = document.getElementById('packSections');
   var printEl = document.getElementById('printPackSections');
   if (el) el.innerHTML = html;
   if (printEl) printEl.innerHTML = html;
 }
+
+document.getElementById('tab-pack').addEventListener('change', function (e) {
+  if (!e.target.matches('.pack-check')) return;
+  var section = e.target.dataset.section;
+  var productId = e.target.dataset.product;
+  if (!section || !productId) return;
+  setPacked(section, productId, !!e.target.checked);
+  saveStateDebounced();
+  renderPackTab();
+});
+
+document.getElementById('tab-pack').addEventListener('click', function (e) {
+  var markAll = e.target.closest('.pack-mark-all');
+  if (markAll) {
+    var sectionKey = markAll.dataset.section;
+    labeledLogItemGroups().forEach(function (section) {
+      if (section.key !== sectionKey) return;
+      section.groups.forEach(function (items) {
+        items.forEach(function (it) {
+          if ((Number(it.qty) || 0) > 0 && it.productId) setPacked(section.key, it.productId, true);
+        });
+      });
+    });
+    saveStateDebounced();
+    renderPackTab();
+    return;
+  }
+  var clearSec = e.target.closest('.pack-clear-section');
+  if (clearSec) {
+    var clearKey = clearSec.dataset.section;
+    if (!state.packed) state.packed = {};
+    Object.keys(state.packed).forEach(function (k) {
+      if (k.indexOf(clearKey + '|') === 0) delete state.packed[k];
+    });
+    saveStateDebounced();
+    renderPackTab();
+  }
+});
+
+document.getElementById('packClearAllBtn').addEventListener('click', function () {
+  if (!state.packed || !Object.keys(state.packed).length) {
+    toast('Nothing marked packed yet.', 'success');
+    return;
+  }
+  if (!confirm('Clear all packed checks?')) return;
+  state.packed = {};
+  saveStateDebounced();
+  renderPackTab();
+  toast('Packing checklist cleared.', 'success');
+});
 
 function renderLogTab() {
   renderServingTotals();
@@ -3633,6 +3772,7 @@ function buildPlanSnapshot(name) {
       raceTimes: deepClone(state.raceTimes),
       targets: deepClone(state.targets),
       paces: deepClone(normalizePaces(state.paces)),
+      packed: deepClone(normalizePacked(state.packed)),
       log: deepClone(state.log)
     },
     products: deepClone(products)
@@ -3722,6 +3862,7 @@ function loadSavedPlanById(id) {
     raceTimes: entry.plan.raceTimes,
     targets: entry.plan.targets,
     paces: entry.plan.paces,
+    packed: entry.plan.packed,
     log: entry.plan.log,
     products: entry.products
   });
@@ -3834,6 +3975,7 @@ function exportPlan() {
     wakeTime: state.wakeTime, startTime: state.startTime,
     raceTimes: state.raceTimes, targets: state.targets,
     paces: state.paces,
+    packed: state.packed,
     products: products, log: state.log
   };
   var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -3871,6 +4013,7 @@ function applyImportedPlan(data) {
     fluids: Object.assign({}, newState.targets.fluids, (data.targets && data.targets.fluids) || {})
   };
   newState.paces = normalizePaces(data.paces);
+  newState.packed = normalizePacked(data.packed);
   var dLog = data.log || {};
   newState.log.preRace.items = (dLog.preRace && Array.isArray(dLog.preRace.items)) ? dLog.preRace.items : [];
   newState.log.t2.items = (dLog.t2 && Array.isArray(dLog.t2.items)) ? dLog.t2.items : [];
