@@ -3,8 +3,23 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="color-scheme" content="dark" />
+<meta name="color-scheme" content="dark light" />
 <title>Race Day Fueling Planner — Ironman Nutrition Calculator</title>
+<script>
+(function () {
+  try {
+    var raw = localStorage.getItem('irnFuel.planState.v1');
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && (parsed.theme === 'light' || parsed.theme === 'dark')) {
+        document.documentElement.setAttribute('data-theme', parsed.theme);
+        return;
+      }
+    }
+  } catch (e) { /* ignore */ }
+  document.documentElement.setAttribute('data-theme', 'dark');
+})();
+</script>
 <style>
   :root{
     /* ---- Palette: dark asphalt base, course-marking yellow accent, ---- */
@@ -47,9 +62,66 @@
     --radius-m: 12px;
     --radius-l: 18px;
     --shadow-card: 0 1px 0 rgba(255,255,255,0.02) inset, 0 10px 28px -16px rgba(0,0,0,0.65);
+    --sticky-bg: rgba(17,15,13,0.88);
+    --live-bar-bg: #0c0a09;
+    --row-stripe: rgba(255,255,255,0.02);
+    --row-stripe-strong: rgba(255,255,255,0.04);
+    --gauge-band: rgba(255,255,255,0.07);
+    --advisory-red-text: #f3b2b4;
+    --brand-mark-ink: #110f0d;
+    --input-scheme: dark;
+    --backdrop: rgba(8,7,6,0.7);
 
     --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace;
+  }
+
+  /* Daylight / race-bib light theme — warm paper, asphalt ink, course yellow */
+  html[data-theme="light"]{
+    --bg: #ece8e1;
+    --bg-vignette: radial-gradient(ellipse 1100px 640px at 50% -8%, #f7f4ee 0%, #ece8e1 58%);
+    --panel: #fffcf7;
+    --panel-2: #f3efe7;
+    --panel-3: #e7e1d6;
+    --border: #c9beae;
+    --border-soft: #ddd5c8;
+    --text: #1c1814;
+    --text-dim: #5c5348;
+    --text-faint: #8a7f70;
+
+    --accent: #c89214;
+    --accent-dim: #a67810;
+    --accent-soft: rgba(200,146,20,0.14);
+    --accent-ink: #fff8e8;
+
+    --swim: #2f86b5;
+    --swim-soft: rgba(47,134,181,0.12);
+    --t-color: #6f675c;
+    --t-soft: rgba(111,103,92,0.12);
+    --bike: #c45f1c;
+    --bike-soft: rgba(196,95,28,0.12);
+    --run: #4f9440;
+    --run-soft: rgba(79,148,64,0.12);
+
+    --green: #2f8f4e;
+    --green-soft: rgba(47,143,78,0.12);
+    --yellow: #b8860f;
+    --yellow-soft: rgba(184,134,15,0.14);
+    --red: #c73a40;
+    --red-soft: rgba(199,58,64,0.12);
+    --neutral: #6e665c;
+    --neutral-soft: rgba(110,102,92,0.12);
+
+    --shadow-card: 0 1px 0 rgba(255,255,255,0.7) inset, 0 10px 28px -18px rgba(40,30,16,0.28);
+    --sticky-bg: rgba(247,244,238,0.92);
+    --live-bar-bg: #f7f4ee;
+    --row-stripe: rgba(28,24,20,0.03);
+    --row-stripe-strong: rgba(28,24,20,0.055);
+    --gauge-band: rgba(28,24,20,0.08);
+    --advisory-red-text: #8f2a2e;
+    --brand-mark-ink: #110f0d;
+    --input-scheme: light;
+    --backdrop: rgba(40,32,22,0.45);
   }
 
   *,*::before,*::after{ box-sizing:border-box; }
@@ -70,7 +142,7 @@
   ul{ margin:8px 0; padding-left:20px; }
   li{ margin-bottom:5px; }
   button{ font-family:inherit; cursor:pointer; }
-  input,select{ font-family:inherit; }
+  input,select,textarea{ font-family:inherit; color-scheme:var(--input-scheme); }
   a{ color:var(--accent); }
   .num, .tabular{ font-variant-numeric:tabular-nums; }
   ::selection{ background:var(--accent-soft); color:var(--text); }
@@ -98,7 +170,7 @@
   .app-shell{ max-width:1360px; margin:0 auto; padding:0 20px 60px; min-width:0; }
   .sticky-top{
     position:sticky; top:0; z-index:40;
-    background:rgba(17,15,13,0.88);
+    background:var(--sticky-bg);
     backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
     border-bottom:1px solid var(--border-soft);
   }
@@ -113,7 +185,7 @@
     width:40px; height:40px; border-radius:10px;
     background:linear-gradient(155deg, var(--swim) 0%, var(--swim) 33%, var(--bike) 33%, var(--bike) 66%, var(--run) 66%, var(--run) 100%);
     display:flex; align-items:center; justify-content:center;
-    font-weight:900; color:#110f0d; font-size:.82rem; letter-spacing:.04em; flex:none;
+    font-weight:900; color:var(--brand-mark-ink); font-size:.82rem; letter-spacing:.04em; flex:none;
     box-shadow:0 4px 14px -6px rgba(0,0,0,0.6);
   }
   .brand-text{ min-width:0; }
@@ -127,11 +199,11 @@
   }
   .plan-name-input::placeholder{ color:var(--text-faint); }
 
-  .unit-toggle{ display:flex; background:var(--panel-2); border:1px solid var(--border); border-radius:var(--radius-s); overflow:hidden; }
-  .unit-btn{
+  .unit-toggle, .theme-toggle{ display:flex; background:var(--panel-2); border:1px solid var(--border); border-radius:var(--radius-s); overflow:hidden; }
+  .unit-btn, .theme-btn{
     background:transparent; border:none; color:var(--text-dim); padding:9px 14px; font-size:.88rem; font-weight:700;
   }
-  .unit-btn.active{ background:var(--accent); color:var(--accent-ink); }
+  .unit-btn.active, .theme-btn.active{ background:var(--accent); color:var(--accent-ink); }
 
   .btn{
     border-radius:var(--radius-s); padding:9px 15px; font-size:.9rem; font-weight:700;
@@ -155,7 +227,7 @@
     gap:0;
     border:1px solid var(--border-soft);
     border-radius:var(--radius-m);
-    background:#0c0a09; overflow:hidden;
+    background:var(--live-bar-bg); overflow:hidden;
     margin-bottom:18px;
   }
   .live-stat{
@@ -235,7 +307,7 @@
   .start-time-input{
     background:var(--panel-2); border:1px solid var(--border); color:var(--text);
     border-radius:var(--radius-s); padding:8px 10px; font-family:var(--font-mono); font-size:.95rem;
-    color-scheme: dark;
+    color-scheme: var(--input-scheme);
   }
 
   .timeline-wrap{ margin-top:18px; }
@@ -254,7 +326,7 @@
     padding:10px 12px; border-bottom:1px solid var(--border-soft); font-size:.92rem;
   }
   .schedule-row:last-child{ border-bottom:none; }
-  .schedule-row:nth-child(even){ background:rgba(255,255,255,0.02); }
+  .schedule-row:nth-child(even){ background:var(--row-stripe); }
   .schedule-clock{ font-family:var(--font-mono); font-weight:700; color:var(--accent); white-space:nowrap; }
   .schedule-label{ font-weight:700; }
   .schedule-dur{ font-family:var(--font-mono); font-size:.88rem; color:var(--text-dim); }
@@ -374,7 +446,7 @@
     background:transparent; box-shadow:none;
   }
   .block-card:last-child{ border-bottom:none; }
-  .block-card:nth-child(even){ background:rgba(255,255,255,0.015); }
+  .block-card:nth-child(even){ background:var(--row-stripe); }
   .block-card.status-red{ box-shadow:inset 3px 0 0 var(--red); }
   .block-card.status-yellow{ box-shadow:inset 3px 0 0 var(--yellow); }
   .block-card.status-green{ box-shadow:inset 3px 0 0 var(--green); }
@@ -471,7 +543,7 @@
   .discipline-table tbody tr.discipline-total td{ background:var(--panel-2); font-weight:800; border-top:2px solid var(--border); }
 
   .gauge{ position:relative; height:8px; background:var(--panel-2); border-radius:4px; margin:8px 0; overflow:hidden; }
-  .gauge-band{ position:absolute; top:0; bottom:0; background:rgba(255,255,255,0.07); }
+  .gauge-band{ position:absolute; top:0; bottom:0; background:var(--gauge-band); }
   .gauge-fill{ position:absolute; top:0; bottom:0; left:0; border-radius:4px; transition:width .25s ease; }
   .gauge-fill.green{ background:var(--green); }
   .gauge-fill.yellow{ background:var(--yellow); }
@@ -498,7 +570,7 @@
   .timeline-amount{ color:var(--accent); font-family:var(--font-mono); font-weight:700; }
   .timeline-running{ color:var(--text-dim); font-family:var(--font-mono); font-size:.9rem; }
   .advisory{ margin-top:12px; padding:12px 14px; border-radius:var(--radius-s); font-size:.9rem; line-height:1.45; }
-  .advisory.red{ background:var(--red-soft); color:#f3b2b4; }
+  .advisory.red{ background:var(--red-soft); color:var(--advisory-red-text); }
   .advisory.neutral{ background:var(--panel-2); color:var(--text-dim); }
 
   .plan-table{ table-layout:fixed; width:100%; }
@@ -548,7 +620,7 @@
     padding:10px 12px; border-bottom:1px solid var(--border-soft); font-size:.95rem;
   }
   .servings-row:last-child{ border-bottom:none; }
-  .servings-row:nth-child(even){ background:rgba(255,255,255,0.015); }
+  .servings-row:nth-child(even){ background:var(--row-stripe); }
   .servings-qty{
     font-family:var(--font-mono); font-weight:800; color:var(--accent); text-align:right; white-space:nowrap;
   }
@@ -598,8 +670,8 @@
     cursor:pointer; user-select:none;
   }
   .pack-item:last-child{ border-bottom:none; }
-  .pack-item:nth-child(even){ background:rgba(255,255,255,0.015); }
-  .pack-item:hover{ background:rgba(255,255,255,0.04); }
+  .pack-item:nth-child(even){ background:var(--row-stripe); }
+  .pack-item:hover{ background:var(--row-stripe-strong); }
   .pack-item.packed{ opacity:0.72; }
   .pack-item.packed .pack-item-name{ text-decoration:line-through; color:var(--text-dim); }
   .pack-check{
@@ -671,7 +743,7 @@
     padding:22px; width:min(480px, 92vw); box-shadow:0 30px 60px -20px rgba(0,0,0,0.7);
   }
   dialog#savedPlansModal{ width:min(560px, 94vw); }
-  dialog#productModal::backdrop, dialog#savedPlansModal::backdrop{ background:rgba(8,7,6,0.7); backdrop-filter:blur(2px); }
+  dialog#productModal::backdrop, dialog#savedPlansModal::backdrop{ background:var(--backdrop); backdrop-filter:blur(2px); }
   dialog#productModal h3, dialog#savedPlansModal h3{ font-size:.95rem; margin-bottom:16px; text-transform:uppercase; letter-spacing:.03em; }
   .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .form-field{ display:flex; flex-direction:column; gap:6px; font-size:.9rem; font-weight:700; color:var(--text-dim); }
@@ -740,8 +812,8 @@
     .tagline{ font-size:.82rem; }
     .settings-controls{ justify-content:stretch; gap:8px; }
     .plan-name-input{ width:100%; order:-1; font-size:16px; }
-    .unit-toggle{ width:100%; }
-    .unit-btn{ flex:1; min-height:42px; }
+    .unit-toggle, .theme-toggle{ width:100%; }
+    .unit-btn, .theme-btn{ flex:1; min-height:42px; }
     .settings-controls .btn{
       flex:1 1 calc(50% - 4px); justify-content:center; min-height:42px; padding:10px 12px;
     }
@@ -955,12 +1027,16 @@
       <div class="card">
         <span class="eyebrow">Plan &amp; units</span>
         <h2 style="margin-top:8px;">Settings</h2>
-        <p class="card-hint">Name this plan, choose units, and save or share your JSON.</p>
+        <p class="card-hint">Name this plan, choose units and theme, and save or share your JSON.</p>
         <div class="settings-controls no-print">
           <input type="text" id="planNameInput" class="plan-name-input" value="My Race Plan" aria-label="Plan name" placeholder="Plan name, e.g. Hot Day Plan" maxlength="60">
-          <div class="unit-toggle" role="group" aria-label="Units">
+          <div class="unit-toggle" id="unitToggle" role="group" aria-label="Units">
             <button type="button" class="unit-btn active" data-unit="metric">Metric</button>
             <button type="button" class="unit-btn" data-unit="imperial">Imperial</button>
+          </div>
+          <div class="theme-toggle" id="themeToggle" role="group" aria-label="Color theme">
+            <button type="button" class="theme-btn active" data-theme="dark">Dark</button>
+            <button type="button" class="theme-btn" data-theme="light">Light</button>
           </div>
           <button type="button" id="savePlanBtn" class="btn btn-primary">Save plan</button>
           <button type="button" id="savedPlansBtn" class="btn btn-ghost">Saved plans</button>
@@ -1476,10 +1552,42 @@ function normalizeRaceFormat(fmt) {
   return fmt === 'half' ? 'half' : 'full';
 }
 
+function normalizeTheme(theme) {
+  return theme === 'light' ? 'light' : 'dark';
+}
+
+function applyTheme(theme) {
+  var next = normalizeTheme(theme);
+  document.documentElement.setAttribute('data-theme', next);
+  var meta = document.querySelector('meta[name="color-scheme"]');
+  if (meta) meta.setAttribute('content', next === 'light' ? 'light dark' : 'dark light');
+}
+
+function updateThemeToggleUI() {
+  var theme = normalizeTheme(state && state.theme);
+  document.querySelectorAll('.theme-btn').forEach(function (b) {
+    b.classList.toggle('active', b.dataset.theme === theme);
+  });
+}
+
+function setTheme(theme) {
+  var next = normalizeTheme(theme);
+  if (!state) {
+    applyTheme(next);
+    return;
+  }
+  if (next === state.theme) return;
+  state.theme = next;
+  applyTheme(next);
+  updateThemeToggleUI();
+  saveStateDebounced();
+}
+
 function defaultState() {
   return {
     planName: 'My Race Plan',
     units: 'metric',
+    theme: 'dark',
     raceFormat: 'full',
     wakeTime: { h: 4, m: 0 },
     startTime: { h: 6, m: 0 },
@@ -1569,6 +1677,7 @@ function loadPlanState() {
         }
         if (!parsed.units) parsed.units = 'metric';
         if (!parsed.planName) parsed.planName = 'My Race Plan';
+        parsed.theme = normalizeTheme(parsed.theme);
         parsed.raceFormat = normalizeRaceFormat(parsed.raceFormat);
         parsed.paces = normalizePaces(parsed.paces);
         parsed.packed = normalizePacked(parsed.packed);
@@ -3525,7 +3634,7 @@ function renderPacesTab() {
 function updateUnitToggleUI() {
   document.querySelectorAll('.unit-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.unit === state.units); });
 }
-document.querySelector('.unit-toggle').addEventListener('click', function (e) {
+document.getElementById('unitToggle').addEventListener('click', function (e) {
   var btn = e.target.closest('.unit-btn');
   if (!btn) return;
   var newUnit = btn.dataset.unit;
@@ -3539,6 +3648,17 @@ document.querySelector('.unit-toggle').addEventListener('click', function (e) {
   renderSummaryTab();
   renderLiveBar();
   saveStateDebounced();
+});
+
+/* =========================================================================
+   THEME TOGGLE
+   ========================================================================= */
+document.querySelectorAll('.theme-toggle').forEach(function (toggle) {
+  toggle.addEventListener('click', function (e) {
+    var btn = e.target.closest('.theme-btn');
+    if (!btn) return;
+    setTheme(btn.dataset.theme);
+  });
 });
 
 /* =========================================================================
@@ -3766,6 +3886,7 @@ function buildPlanSnapshot(name) {
     plan: {
       planName: state.planName,
       units: state.units,
+      theme: normalizeTheme(state.theme),
       raceFormat: normalizeRaceFormat(state.raceFormat),
       wakeTime: deepClone(normalizeStartTime(state.wakeTime)),
       startTime: deepClone(normalizeStartTime(state.startTime)),
@@ -3855,6 +3976,7 @@ function loadSavedPlanById(id) {
   applyImportedPlan({
     planName: entry.plan.planName || entry.name,
     units: entry.plan.units,
+    theme: entry.plan.theme,
     raceFormat: entry.plan.raceFormat,
     wakeTime: entry.plan.wakeTime,
     morningHours: entry.plan.morningHours,
@@ -3971,6 +4093,7 @@ function exportPlan() {
   var payload = {
     meta: { app: 'Race Day Fueling Planner', version: 2, exportedAt: new Date().toISOString() },
     planName: state.planName, units: state.units,
+    theme: state.theme,
     raceFormat: state.raceFormat,
     wakeTime: state.wakeTime, startTime: state.startTime,
     raceTimes: state.raceTimes, targets: state.targets,
@@ -3996,6 +4119,7 @@ function applyImportedPlan(data) {
   var newState = defaultState();
   newState.planName = data.planName || 'Imported plan';
   newState.units = data.units === 'imperial' ? 'imperial' : 'metric';
+  newState.theme = normalizeTheme(data.theme);
   newState.raceFormat = normalizeRaceFormat(data.raceFormat);
   newState.startTime = normalizeStartTime(data.startTime || newState.startTime);
   if (data.wakeTime) {
@@ -4084,7 +4208,9 @@ document.addEventListener('wheel', function (e) {
    ========================================================================= */
 function fullRenderAll() {
   syncSetupInputs();
+  applyTheme(state.theme);
   updateUnitToggleUI();
+  updateThemeToggleUI();
   renderProductsTab();
   renderPacesTab();
   renderLogTab();
